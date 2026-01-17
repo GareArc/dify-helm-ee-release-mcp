@@ -1,0 +1,32 @@
+# Helm Release MCP - Repository Configuration
+#
+# Define your repositories here. Each repository needs:
+#   - name: Unique identifier (used in tool names, e.g., {name}__prepare_release)
+#   - github: GitHub path in "owner/repo" format
+#   - type: Repository type ("dify-helm" or "dify-enterprise")
+#   - settings: Type-specific configuration
+#
+# See docs/configuration.md for full schema documentation.
+
+repositories: []
+  # Example: Dify Helm charts repository
+  # - name: dify-helm
+  #   github: langgenius/dify-helm
+  #   type: dify-helm
+  #   description: Dify Helm charts
+  #   settings:
+  #     charts_path: charts/
+  #     publish_workflow: publish.yaml
+
+  # Example: Dify Enterprise repository
+  # - name: dify-enterprise
+  #   github: langgenius/dify-enterprise
+  #   type: dify-enterprise
+  #   description: Dify Enterprise services monorepo
+  #   settings:
+  #     version_file: package.json
+  #     version_path: version
+  #     build_workflow: ci.yaml
+  #     release_workflow: release.yaml
+  #     helm_repo: dify-helm
+  #     helm_chart: dify-enterprise
