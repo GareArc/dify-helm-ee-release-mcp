@@ -1,11 +1,15 @@
-"""Dify Helm repository type."""
+"""Dify Enterprise Frontend repository type."""
 
 from helm_release_mcp.repos.base import BaseRepo, CoreServices, RepoConfig, RepoStatus
-from helm_release_mcp.repos.types.dify_helm.workflows import WorkflowOperationsMixin
+from helm_release_mcp.repos.types.dify_enterprise_frontend.tag import TagOperationsMixin
 
 
-class DifyHelmRepo(WorkflowOperationsMixin, BaseRepo, repo_type="dify-helm"):
-    """Repository type for Dify Helm charts."""
+class DifyEnterpriseFrontendRepo(
+    TagOperationsMixin,
+    BaseRepo,
+    repo_type="dify-enterprise-frontend",
+):
+    """Repository type for Dify Enterprise Frontend."""
 
     def __init__(self, config: RepoConfig, services: CoreServices) -> None:
         super().__init__(config, services)

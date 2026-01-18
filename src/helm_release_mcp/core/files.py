@@ -1,6 +1,8 @@
 """File operations service for YAML/JSON manipulation."""
 
 import json
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,8 @@ class FileService:
 
     Uses ruamel.yaml to preserve formatting, comments, and order in YAML files.
     """
+
+    _env_pattern = re.compile(r"\$\{([^}]+)\}")
 
     def __init__(self) -> None:
         self._yaml = YAML()
@@ -37,7 +41,8 @@ class FileService:
         try:
             with path.open("r") as f:
                 data = self._yaml.load(f)
-                return dict(data) if data else {}
+                normalized = dict(data) if data else {}
+                return self._expand_env_vars(normalized)
         except Exception as e:
             raise ValueError(f"Failed to parse YAML file {path}: {e}") from e
 
@@ -151,3 +156,16 @@ class FileService:
                 self._deep_merge(base[key], value)
             else:
                 base[key] = value
+
+    def _expand_env_vars(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key: self._expand_env_vars(val) for key, val in value.items()}
+        if isinstance(value, list):
+            return [self._expand_env_vars(item) for item in value]
+        if isinstance(value, str):
+            return self._env_pattern.sub(self._replace_env_var, value)
+        return value
+
+    def _replace_env_var(self, match: re.Match[str]) -> str:
+        env_key = match.group(1)
+        return os.getenv(env_key, "")

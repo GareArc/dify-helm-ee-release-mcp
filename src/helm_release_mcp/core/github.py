@@ -73,6 +73,21 @@ class ReleaseInfo:
     published_at: datetime | None
 
 
+@dataclass
+class BranchInfo:
+    """Information about a branch and its latest commit."""
+
+    name: str
+    sha: str
+    html_url: str
+    protected: bool
+    commit_message: str
+    commit_author: str
+    commit_committer: str
+    commit_date: datetime
+    commit_url: str
+
+
 class GitHubService:
     """Service for GitHub API operations.
 
@@ -92,7 +107,7 @@ class GitHubService:
         else:
             self._client = Github(auth=auth, base_url=base_url)
 
-    def _get_repo(self, repo_path: str) -> GHRepo:
+    def get_repo(self, repo_path: str) -> GHRepo:
         """Get a repository object.
 
         Args:
@@ -140,7 +155,7 @@ class GitHubService:
             GitHubError: If PR creation fails.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             pr = repo.create_pull(
                 title=title,
                 body=body,
@@ -164,7 +179,7 @@ class GitHubService:
             Pull request information.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             pr = repo.get_pull(pr_number)
             return self._pr_to_info(pr)
         except GithubException as e:
@@ -195,7 +210,7 @@ class GitHubService:
             GitHubError: If merge fails.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             pr = repo.get_pull(pr_number)
 
             kwargs: dict[str, Any] = {"merge_method": merge_method}
@@ -223,7 +238,7 @@ class GitHubService:
             Dictionary with check information.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             pr = repo.get_pull(pr_number)
 
             # Get combined status
@@ -263,7 +278,7 @@ class GitHubService:
             List of review information.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             pr = repo.get_pull(pr_number)
             reviews = list(pr.get_reviews())
 
@@ -289,7 +304,7 @@ class GitHubService:
             List of open pull requests.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             prs = repo.get_pulls(state="open", base=base) if base else repo.get_pulls(state="open")
             return [self._pr_to_info(pr) for pr in prs]
         except GithubException as e:
@@ -340,7 +355,7 @@ class GitHubService:
             GitHubError: If trigger fails.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             workflow = repo.get_workflow(workflow_file)
 
             success = workflow.create_dispatch(ref=ref, inputs=inputs or {})
@@ -373,7 +388,7 @@ class GitHubService:
             Workflow run information.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             run = repo.get_workflow_run(run_id)
             return self._run_to_info(run)
         except GithubException as e:
@@ -401,7 +416,7 @@ class GitHubService:
             List of workflow runs.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
 
             kwargs: dict[str, Any] = {}
             if branch:
@@ -466,7 +481,7 @@ class GitHubService:
             Release information.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
 
             kwargs: dict[str, Any] = {
                 "tag": tag_name,
@@ -494,7 +509,7 @@ class GitHubService:
             Latest release info, or None if no releases.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             release = repo.get_latest_release()
             return self._release_to_info(release)
         except GithubException as e:
@@ -513,7 +528,7 @@ class GitHubService:
             List of releases.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             releases = list(repo.get_releases())[:limit]
             return [self._release_to_info(r) for r in releases]
         except GithubException as e:
@@ -557,7 +572,7 @@ class GitHubService:
             Tag SHA.
         """
         try:
-            repo = self._get_repo(repo_path)
+            repo = self.get_repo(repo_path)
             tag = repo.create_git_tag(
                 tag=tag_name,
                 message=message,
@@ -580,8 +595,33 @@ class GitHubService:
         Returns:
             Default branch name.
         """
-        repo = self._get_repo(repo_path)
+        repo = self.get_repo(repo_path)
         return repo.default_branch
+
+    def get_branch(self, repo_path: str, branch_name: str) -> BranchInfo | None:
+        """Get branch information including latest commit details."""
+        try:
+            repo = self.get_repo(repo_path)
+            branch = repo.get_branch(branch_name)
+            commit = branch.commit
+
+            return BranchInfo(
+                name=branch.name,
+                sha=commit.sha,
+                html_url=f"https://github.com/{repo_path}/tree/{branch_name}",
+                protected=branch.protected,
+                commit_message=commit.commit.message,
+                commit_author=commit.commit.author.name if commit.commit.author else "",
+                commit_committer=commit.commit.committer.name if commit.commit.committer else "",
+                commit_date=commit.commit.author.date
+                if commit.commit.author
+                else commit.commit.committer.date,
+                commit_url=commit.html_url,
+            )
+        except GithubException as e:
+            if e.status == 404:
+                return None
+            raise GitHubError(f"Failed to get branch {branch_name}: {e}") from e
 
     def close(self) -> None:
         """Close the GitHub client."""

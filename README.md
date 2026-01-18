@@ -5,10 +5,12 @@ MCP (Model Context Protocol) server for automating Dify EE Helm chart releases a
 ## Features
 
 - **Multi-repo management**: Configure and manage multiple repositories from a single server
-- **Helm chart releases**: Prepare and publish Helm chart releases with version bumping and PR workflows
-- **Application releases**: Manage application version bumping, builds, and releases
-- **GitHub integration**: Full support for PRs, releases, and workflow triggers
-- **Flexible configuration**: YAML-based repository configuration
+- **Release branch creation**: Create release branches from community version tags
+- **Pre-release checks**: Trigger CVE scans, benchmarks, license reviews, and Linear checklists
+- **Release workflows**: Publish Helm charts via workflow triggers
+- **Tag-based builds**: Trigger builds by creating tags on release branches
+- **Per-repo tokens**: Use different GitHub tokens per repository
+- **Flexible configuration**: YAML-based repository configuration with environment variable support
 
 ## Quick Start
 
@@ -20,11 +22,11 @@ MCP (Model Context Protocol) server for automating Dify EE Helm chart releases a
 
 ### GitHub Token Setup
 
-Create a **Fine-Grained Personal Access Token** at [GitHub Settings → Developer settings → Fine-grained tokens](https://github.com/settings/tokens?type=beta):
+Create a **Fine-Grained Personal Access Token** at [GitHub Settings > Developer settings > Fine-grained tokens](https://github.com/settings/tokens?type=beta):
 
 | Permission | Access Level | Required For |
 |------------|--------------|--------------|
-| **Contents** | Read & Write | Clone, commit, push, create branches |
+| **Contents** | Read & Write | Clone, commit, push, create branches/tags |
 | **Pull requests** | Read & Write | Create and merge PRs |
 | **Actions** | Read & Write | Trigger workflows, check run status |
 | **Metadata** | Read | Required for API access |
@@ -60,13 +62,22 @@ uv sync
 
    ```yaml
    repositories:
+     - name: dify
+       github: langgenius/dify
+       type: dify
+       description: Dify core services
+
      - name: dify-helm
        github: langgenius/dify-helm
        type: dify-helm
        description: Dify Helm charts
        settings:
-         charts_path: charts/
-         publish_workflow: publish.yaml
+         github_token: ${DIFY_HELM_GITHUB_TOKEN}
+         cve_scan_workflow: .github/workflows/cve.yaml
+         benchmark_workflow: .github/workflows/benchmark.yaml
+         license_review_workflow: .github/workflows/enterprise-license.yaml
+         linear_checklist_workflow: .github/workflows/linear-checklist.yaml
+         release_workflow: .github/workflows/release.yaml
    ```
 
    See [docs/configuration.md](docs/configuration.md) for full configuration reference.
@@ -88,7 +99,9 @@ For Claude Desktop, add to your MCP settings:
       "command": "uv",
       "args": ["--directory", "/path/to/helm-release-mcp", "run", "helm-release-mcp"],
       "env": {
-        "HELM_MCP_GITHUB_TOKEN": "ghp_xxxx"
+        "HELM_MCP_GITHUB_TOKEN": "ghp_xxxx",
+        "DIFY_HELM_GITHUB_TOKEN": "ghp_yyyy",
+        "DIFY_ENTERPRISE_GITHUB_TOKEN": "ghp_zzzz"
       }
     }
   }
@@ -97,66 +110,79 @@ For Claude Desktop, add to your MCP settings:
 
 ## Available Tools
 
-### Discovery Tools
+### Global Tools
 
 - `list_repos()` - List all managed repositories
 - `get_repo_status(repo)` - Get high-level status of a repository
 - `get_repo_operations(repo)` - Get available operations for a repository
+- `create_branch(repo, branch, start_point)` - Create a branch from a repo/ref
+- `get_release_branch_info(repo, branch)` - Get branch info with commit details and workflow runs
 
-### Status Tools
+### Dify Operations
 
-- `check_workflow(repo, run_id)` - Check workflow run status
-- `check_pr(repo, pr_number)` - Check pull request status
-- `wait_for_workflow(repo, run_id)` - Wait for workflow completion
-- `list_workflow_runs(repo)` - List recent workflow runs
-- `list_open_prs(repo)` - List open pull requests
+- `dify__create_release_branch(base_ref, branch_name)` - Create release branch from any git ref (tag, branch, or SHA)
 
 ### Dify Helm Operations
 
-- `dify-helm__list_charts()` - List all charts
-- `dify-helm__get_chart_info(chart)` - Get chart details
-- `dify-helm__prepare_release(chart, version)` - Create release PR
-- `dify-helm__publish_release(chart, pr_number)` - Merge PR and release
-- `dify-helm__lint_chart(chart)` - Validate a chart
+- `dify-helm__trigger_cve_scan(branch)` - Trigger container security scan on release branch
+- `dify-helm__trigger_benchmark(branch)` - Trigger benchmark test on release branch
+- `dify-helm__trigger_license_review(branch)` - Trigger dependency license review on release branch
+- `dify-helm__trigger_linear_checklist(branch)` - Trigger Linear release checklist on release branch
+- `dify-helm__release(branch)` - Trigger release workflow to publish Helm chart
 
 ### Dify Enterprise Operations
 
-- `dify-enterprise__get_version()` - Get current version
-- `dify-enterprise__bump_version(bump_type)` - Bump version
-- `dify-enterprise__prepare_release(version)` - Create release PR
-- `dify-enterprise__trigger_build(ref)` - Trigger CI workflow
-- `dify-enterprise__publish_release(pr_number)` - Merge PR and release
-- `dify-enterprise__update_helm_chart(version)` - Update Helm chart
+- `dify-enterprise__create_tag(branch, tag)` - Create tag on branch to trigger build/CI
+
+### Dify Enterprise Frontend Operations
+
+- `dify-enterprise-frontend__create_tag(branch, tag)` - Create tag on branch to trigger build/CI
 
 ## Example Workflow
 
 ```
-1. list_repos()                                    # Discover available repos
-2. dify-helm__prepare_release("api", "2.0.0")      # Create release PR
-3. check_pr("dify-helm", 123)                      # Monitor PR status
-4. dify-helm__publish_release("api", 123)          # Merge and release
-5. check_workflow("dify-helm", 456)                # Monitor publish workflow
+# 1. Create release branch from any ref (tag, branch, or SHA)
+dify__create_release_branch("0.15.3", "release/ee-1.0.0")
+
+# 2. Run pre-release checks on dify-helm
+dify-helm__trigger_cve_scan("release/1.0.0")
+dify-helm__trigger_benchmark("release/1.0.0")
+dify-helm__trigger_license_review("release/1.0.0")
+dify-helm__trigger_linear_checklist("release/1.0.0")
+
+# 3. Release Helm chart
+dify-helm__release("release/1.0.0")
+
+# 4. Tag enterprise repos to trigger builds
+dify-enterprise__create_tag("release/1.0.0", "v1.0.0")
+dify-enterprise-frontend__create_tag("release/1.0.0", "v1.0.0")
 ```
 
 ## Repository Types
 
+### dify
+
+For the Dify core services repository. Supports:
+- Creating release branches from any git ref (tag, branch, or SHA)
+
 ### dify-helm
 
 For the Dify Helm charts repository. Supports:
-
-- Chart listing and inspection
-- Version bumping with PR workflow
-- Release publishing with tag creation
-- Optional publish workflow trigger
+- CVE scanning workflow triggers
+- Benchmark test workflow triggers
+- License review workflow triggers
+- Linear checklist workflow triggers
+- Release workflow to publish Helm charts
 
 ### dify-enterprise
 
 For the Dify Enterprise monorepo. Supports:
+- Tag creation on branches to trigger builds
 
-- Version file management (package.json, etc.)
-- Semantic version bumping (major/minor/patch)
-- Build workflow triggering
-- Helm chart update coordination
+### dify-enterprise-frontend
+
+For the Dify Enterprise Frontend repository. Supports:
+- Tag creation on branches to trigger builds
 
 ## Development
 
@@ -165,7 +191,7 @@ For the Dify Enterprise monorepo. Supports:
 uv sync
 
 # Run linting
-uv run ruff check .
+make lint
 
 # Run type checking
 uv run mypy src/

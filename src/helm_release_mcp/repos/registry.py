@@ -11,8 +11,12 @@ from helm_release_mcp.core.workspace import WorkspaceManager
 from helm_release_mcp.repos.base import BaseRepo, CoreServices, RepoConfig
 
 # Import repo types to register them
-from helm_release_mcp.repos.types.application import ApplicationRepo  # noqa: F401
-from helm_release_mcp.repos.types.helm_registry import HelmRegistryRepo  # noqa: F401
+from helm_release_mcp.repos.types.dify import DifyRepo  # noqa: F401
+from helm_release_mcp.repos.types.dify_enterprise import DifyEnterpriseRepo  # noqa: F401
+from helm_release_mcp.repos.types.dify_enterprise_frontend import (  # noqa: F401
+    DifyEnterpriseFrontendRepo,
+)
+from helm_release_mcp.repos.types.dify_helm import DifyHelmRepo  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +73,8 @@ class RepoRegistry:
             github=github_service,
             files=file_service,
             workspace=workspace_manager,
+            github_api_base_url=github_api_base_url,
+            default_github_token=github_token,
         )
 
         registry = cls(services)

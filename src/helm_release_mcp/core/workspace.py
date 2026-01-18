@@ -52,6 +52,7 @@ class WorkspaceManager:
         *,
         branch: str = "main",
         force_fresh: bool = False,
+        token: str | None = None,
     ) -> Repo:
         """Ensure a repository is available locally and up to date.
 
@@ -63,6 +64,7 @@ class WorkspaceManager:
             github_path: GitHub path in "owner/repo" format.
             branch: Default branch to checkout.
             force_fresh: Delete and re-clone the repository.
+            token: Optional token override for this repo.
 
         Returns:
             The repository object.
@@ -71,19 +73,17 @@ class WorkspaceManager:
             GitError: If repository operations fail.
         """
         repo_path = self.get_repo_path(repo_name)
+        effective_token = token or self._token
 
-        # Handle force fresh
         if force_fresh and repo_path.exists():
             logger.info(f"Force fresh: removing {repo_path}")
             shutil.rmtree(repo_path)
             self._repos.pop(repo_name, None)
 
-        # Check if already cloned
         if repo_path.exists() and (repo_path / ".git").exists():
             return self._update_repo(repo_name, repo_path, branch)
 
-        # Clone the repository
-        return self._clone_repo(repo_name, github_path, repo_path, branch)
+        return self._clone_repo(repo_name, github_path, repo_path, branch, effective_token)
 
     def _clone_repo(
         self,
@@ -91,9 +91,10 @@ class WorkspaceManager:
         github_path: str,
         repo_path: Path,
         branch: str,
+        token: str,
     ) -> Repo:
         """Clone a repository."""
-        url = self._get_authenticated_url(github_path)
+        url = self._get_authenticated_url(github_path, token)
 
         logger.info(f"Cloning {github_path} to {repo_path}")
         repo = self._git.clone(url, repo_path, branch=branch)
@@ -213,16 +214,18 @@ class WorkspaceManager:
                 if item.is_dir():
                     shutil.rmtree(item)
 
-    def _get_authenticated_url(self, github_path: str) -> str:
+    def _get_authenticated_url(self, github_path: str, token: str | None = None) -> str:
         """Get an authenticated HTTPS URL for a GitHub repository.
 
         Args:
             github_path: GitHub path in "owner/repo" format.
+            token: Optional token override.
 
         Returns:
             Authenticated HTTPS URL.
         """
-        return f"https://x-access-token:{self._token}@github.com/{github_path}.git"
+        effective_token = token or self._token
+        return f"https://x-access-token:{effective_token}@github.com/{github_path}.git"
 
     def list_repos(self) -> list[str]:
         """List all repositories in the workspace.

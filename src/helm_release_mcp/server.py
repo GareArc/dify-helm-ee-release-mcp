@@ -66,14 +66,14 @@ def create_server() -> FastMCP:
         ### Repository Operations
         Tools are named `{repo_name}__{operation}` where repo_name is from your config.
 
-        For helm-registry repos:
+        For dify-helm repos:
         - `{repo}__list_charts`: List all charts
         - `{repo}__get_chart_info`: Get chart details
         - `{repo}__prepare_release`: Create release PR
         - `{repo}__publish_release`: Merge PR and create release
         - `{repo}__lint_chart`: Validate a chart
 
-        For application repos:
+        For dify-enterprise repos:
         - `{repo}__get_version`: Get current version
         - `{repo}__bump_version`: Bump version
         - `{repo}__prepare_release`: Create release PR

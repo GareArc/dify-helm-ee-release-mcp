@@ -113,165 +113,135 @@ def _register_typed_tools_for_repo(mcp: FastMCP, repo: BaseRepo) -> None:
 
     Creates tools with proper parameter signatures based on repo type.
     """
-    if repo.repo_type == "helm-registry":
-        _register_helm_registry_tools(mcp, repo)
-    elif repo.repo_type == "application":
-        _register_application_tools(mcp, repo)
+    if repo.repo_type == "dify":
+        _register_dify_tools(mcp, repo)
+    elif repo.repo_type == "dify-helm":
+        _register_dify_helm_tools(mcp, repo)
+    elif repo.repo_type == "dify-enterprise":
+        _register_dify_enterprise_tools(mcp, repo)
+    elif repo.repo_type == "dify-enterprise-frontend":
+        _register_dify_enterprise_frontend_tools(mcp, repo)
 
 
-def _register_helm_registry_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for a helm-registry repository."""
+def _register_dify_tools(mcp: FastMCP, repo: BaseRepo) -> None:
+    """Register tools for a dify repository."""
 
-    @mcp.tool(name=f"{repo.name}__list_charts")
-    async def list_charts() -> dict[str, Any]:
-        """List all Helm charts in the registry."""
-        method = repo.get_operation_method("list_charts")
-        if method:
-            return await method()
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__get_chart_info")
-    async def get_chart_info(chart: str) -> dict[str, Any]:
-        """Get detailed information about a specific chart.
-
-        Args:
-            chart: Chart name.
-        """
-        method = repo.get_operation_method("get_chart_info")
-        if method:
-            return await method(chart)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__prepare_release")
-    async def prepare_release(
-        chart: str,
-        version: str,
-        changelog: str | None = None,
-        app_version: str | None = None,
+    @mcp.tool(name=f"{repo.name}__create_release_branch")
+    async def create_release_branch(
+        base_ref: str,
+        branch_name: str,
     ) -> dict[str, Any]:
-        """Prepare a new chart release by bumping version and creating PR.
+        """Create a new release branch based on a specific ref.
 
         Args:
-            chart: Chart name.
-            version: New version string.
-            changelog: Optional changelog entry.
-            app_version: Optional appVersion to set.
+            base_ref: Git ref to base the branch on (tag, branch, or SHA, e.g., "0.15.3", "main").
+            branch_name: Name for the new release branch (e.g., "release/ee-1.0.0").
         """
-        method = repo.get_operation_method("prepare_release")
+        method = repo.get_operation_method("create_release_branch")
         if method:
-            return await method(chart, version, changelog=changelog, app_version=app_version)
+            return await method(base_ref, branch_name)
         return {"success": False, "error": "Operation not found"}
 
-    @mcp.tool(name=f"{repo.name}__publish_release")
-    async def publish_release(
-        chart: str,
-        pr_number: int,
-        merge_method: str = "squash",
+
+def _register_dify_helm_tools(mcp: FastMCP, repo: BaseRepo) -> None:
+    """Register tools for a dify-helm repository."""
+
+    @mcp.tool(name=f"{repo.name}__trigger_cve_scan")
+    async def trigger_cve_scan(branch: str) -> dict[str, Any]:
+        """Trigger container security scan workflow on a release branch.
+
+        Args:
+            branch: Release branch name (e.g., "release/1.0.0").
+        """
+        method = repo.get_operation_method("trigger_cve_scan")
+        if method:
+            return await method(branch)
+        return {"success": False, "error": "Operation not found"}
+
+    @mcp.tool(name=f"{repo.name}__trigger_benchmark")
+    async def trigger_benchmark(branch: str) -> dict[str, Any]:
+        """Trigger benchmark test workflow on a release branch.
+
+        Args:
+            branch: Release branch name (e.g., "release/1.0.0").
+        """
+        method = repo.get_operation_method("trigger_benchmark")
+        if method:
+            return await method(branch)
+        return {"success": False, "error": "Operation not found"}
+
+    @mcp.tool(name=f"{repo.name}__trigger_license_review")
+    async def trigger_license_review(branch: str) -> dict[str, Any]:
+        """Trigger dependency license review workflow on a release branch.
+
+        Args:
+            branch: Release branch name (e.g., "release/1.0.0").
+        """
+        method = repo.get_operation_method("trigger_license_review")
+        if method:
+            return await method(branch)
+        return {"success": False, "error": "Operation not found"}
+
+    @mcp.tool(name=f"{repo.name}__trigger_linear_checklist")
+    async def trigger_linear_checklist(branch: str) -> dict[str, Any]:
+        """Trigger Linear release checklist workflow on a release branch.
+
+        Args:
+            branch: Release branch name (e.g., "release/1.0.0").
+        """
+        method = repo.get_operation_method("trigger_linear_checklist")
+        if method:
+            return await method(branch)
+        return {"success": False, "error": "Operation not found"}
+
+    @mcp.tool(name=f"{repo.name}__release")
+    async def release(branch: str) -> dict[str, Any]:
+        """Trigger release workflow to publish Helm chart to gh-pages.
+
+        Args:
+            branch: Release branch name (e.g., "release/1.0.0").
+        """
+        method = repo.get_operation_method("release")
+        if method:
+            return await method(branch)
+        return {"success": False, "error": "Operation not found"}
+
+
+def _register_dify_enterprise_tools(mcp: FastMCP, repo: BaseRepo) -> None:
+    """Register tools for a dify-enterprise repository."""
+
+    @mcp.tool(name=f"{repo.name}__create_tag")
+    async def create_tag(
+        branch: str,
+        tag: str,
     ) -> dict[str, Any]:
-        """Publish a chart release by merging PR and creating release.
+        """Create a tag on a branch to trigger build/CI workflow.
 
         Args:
-            chart: Chart name.
-            pr_number: PR number to merge.
-            merge_method: Git merge method (squash, merge, rebase).
+            branch: Branch name to create the tag on (e.g., "release/1.0.0").
+            tag: Tag name (e.g., "v1.0.0").
         """
-        method = repo.get_operation_method("publish_release")
+        method = repo.get_operation_method("create_tag")
         if method:
-            return await method(chart, pr_number, merge_method=merge_method)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__lint_chart")
-    async def lint_chart(chart: str) -> dict[str, Any]:
-        """Lint a Helm chart for errors.
-
-        Args:
-            chart: Chart name.
-        """
-        method = repo.get_operation_method("lint_chart")
-        if method:
-            return await method(chart)
+            return await method(branch, tag)
         return {"success": False, "error": "Operation not found"}
 
 
-def _register_application_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for an application repository."""
+def _register_dify_enterprise_frontend_tools(mcp: FastMCP, repo: BaseRepo) -> None:
+    """Register tools for a dify-enterprise-frontend repository."""
 
-    @mcp.tool(name=f"{repo.name}__get_version")
-    async def get_version() -> dict[str, Any]:
-        """Get the current application version."""
-        method = repo.get_operation_method("get_version")
-        if method:
-            return await method()
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__bump_version")
-    async def bump_version(
-        bump_type: str = "patch",
-        new_version: str | None = None,
+    @mcp.tool(name=f"{repo.name}__create_tag")
+    async def create_tag(
+        branch: str,
+        tag: str,
     ) -> dict[str, Any]:
-        """Bump the application version.
+        """Create a tag on a branch to trigger build/CI workflow.
 
         Args:
-            bump_type: Type of bump (major, minor, patch).
-            new_version: Explicit version to set (overrides bump_type).
+            branch: Branch name to create the tag on (e.g., "release/1.0.0").
+            tag: Tag name (e.g., "v1.0.0").
         """
-        method = repo.get_operation_method("bump_version")
+        method = repo.get_operation_method("create_tag")
         if method:
-            return await method(bump_type, new_version=new_version)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__prepare_release")
-    async def prepare_release(
-        version: str,
-        changelog: str | None = None,
-    ) -> dict[str, Any]:
-        """Prepare a new application release.
-
-        Args:
-            version: New version string.
-            changelog: Optional changelog entry.
-        """
-        method = repo.get_operation_method("prepare_release")
-        if method:
-            return await method(version, changelog=changelog)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__trigger_build")
-    async def trigger_build(ref: str | None = None) -> dict[str, Any]:
-        """Trigger a build/CI workflow.
-
-        Args:
-            ref: Git ref to build (default: default branch).
-        """
-        method = repo.get_operation_method("trigger_build")
-        if method:
-            return await method(ref=ref)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__publish_release")
-    async def publish_release(
-        pr_number: int,
-        merge_method: str = "squash",
-    ) -> dict[str, Any]:
-        """Publish a release by merging PR and creating GitHub release.
-
-        Args:
-            pr_number: PR number to merge.
-            merge_method: Git merge method.
-        """
-        method = repo.get_operation_method("publish_release")
-        if method:
-            return await method(pr_number, merge_method=merge_method)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__update_helm_chart")
-    async def update_helm_chart(version: str | None = None) -> dict[str, Any]:
-        """Update the associated Helm chart with the new app version.
-
-        Args:
-            version: Version to set (default: current app version).
-        """
-        method = repo.get_operation_method("update_helm_chart")
-        if method:
-            return await method(version)
+            return await method(branch, tag)
         return {"success": False, "error": "Operation not found"}

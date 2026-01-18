@@ -14,6 +14,8 @@ from helm_release_mcp.core.workspace import WorkspaceManager
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_GITHUB_API_URL = "https://api.github.com"
+
 
 @dataclass
 class RepoConfig:
@@ -58,12 +60,14 @@ class CoreServices:
     github: GitHubService
     files: FileService
     workspace: WorkspaceManager
+    github_api_base_url: str = DEFAULT_GITHUB_API_URL
+    default_github_token: str = ""
 
 
 class BaseRepo(ABC):
     """Abstract base class for repository types.
 
-    Each repository type (helm-registry, application, etc.) extends this class
+    Each repository type (dify-helm, dify-enterprise, etc.) extends this class
     and implements its specific operations as async methods.
 
     Operations are automatically discovered by introspecting async methods
@@ -84,6 +88,16 @@ class BaseRepo(ABC):
         self.services = services
         self._operations: dict[str, OperationInfo] | None = None
 
+        repo_token = self._get_setting("github_token")
+        if repo_token and repo_token != services.default_github_token:
+            self._github_service: GitHubService | None = GitHubService(
+                repo_token, services.github_api_base_url
+            )
+            self._github_token: str | None = repo_token
+        else:
+            self._github_service = None
+            self._github_token = None
+
     def __init_subclass__(cls, repo_type: str | None = None, **kwargs: Any) -> None:
         """Register subclasses in the type registry."""
         super().__init_subclass__(**kwargs)
@@ -95,7 +109,7 @@ class BaseRepo(ABC):
         """Get the class for a repository type.
 
         Args:
-            repo_type: Type identifier (e.g., "helm-registry").
+            repo_type: Type identifier (e.g., "dify-helm").
 
         Returns:
             The repo class, or None if not found.
@@ -121,6 +135,11 @@ class BaseRepo(ABC):
     def repo_type(self) -> str:
         """Repository type identifier."""
         return self.config.type
+
+    @property
+    def github(self) -> GitHubService:
+        """GitHub service for this repo (per-repo token if configured)."""
+        return self._github_service or self.services.github
 
     @abstractmethod
     async def get_status(self) -> RepoStatus:
@@ -216,11 +235,12 @@ class BaseRepo(ABC):
 
     async def ensure_workspace(self) -> None:
         """Ensure the repository is cloned and up to date."""
-        default_branch = self.services.github.get_default_branch(self.github_path)
+        default_branch = self.github.get_default_branch(self.github_path)
         self.services.workspace.ensure_repo(
             self.name,
             self.github_path,
             branch=default_branch,
+            token=self._github_token,
         )
 
     def _get_setting(self, key: str, default: Any = None) -> Any:

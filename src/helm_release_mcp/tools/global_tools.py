@@ -7,6 +7,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from helm_release_mcp.core.git import GitError
 from helm_release_mcp.repos.registry import RepoRegistry
 
 logger = logging.getLogger(__name__)
@@ -367,6 +368,117 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
         except Exception as e:
             logger.exception("Error listing open PRs")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    @mcp.tool()
+    async def create_branch(
+        repo: str, branch: str, start_point: str | None = None
+    ) -> dict[str, Any]:
+        """Create a new branch in a repository.
+
+        Args:
+            repo: Repository name.
+            branch: Branch name to create.
+            start_point: Optional ref to base the branch on.
+        """
+        repo_obj = registry.get_repo(repo)
+        if not repo_obj:
+            return {
+                "success": False,
+                "error": f"Repository not found: {repo}",
+            }
+
+        try:
+            await repo_obj.ensure_workspace()
+            repo_path = registry.services.workspace.get_repo_path(repo_obj.name)
+            git_repo = registry.services.git.open(repo_path)
+
+            if start_point is None:
+                default_branch = registry.services.github.get_default_branch(repo_obj.github_path)
+                start_point = f"origin/{default_branch}"
+
+            registry.services.git.create_branch(
+                git_repo,
+                branch,
+                start_point=start_point,
+                checkout=False,
+            )
+
+            return {
+                "success": True,
+                "repo": repo,
+                "branch": branch,
+                "start_point": start_point,
+            }
+        except GitError as e:
+            logger.exception("Error creating branch")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    @mcp.tool()
+    async def get_release_branch_info(repo: str, branch: str) -> dict[str, Any]:
+        """Get release branch info including latest commit and workflow runs.
+
+        Args:
+            repo: Repository name.
+            branch: Branch name to check.
+        """
+        repo_obj = registry.get_repo(repo)
+        if not repo_obj:
+            return {
+                "success": False,
+                "error": f"Repository not found: {repo}",
+            }
+
+        try:
+            github = repo_obj.github
+            branch_info = github.get_branch(repo_obj.github_path, branch)
+
+            if branch_info is None:
+                return {
+                    "success": False,
+                    "exists": False,
+                    "error": f"Branch not found: {branch}",
+                }
+
+            workflow_runs = github.list_workflow_runs(
+                repo_obj.github_path,
+                branch=branch,
+                limit=5,
+            )
+
+            return {
+                "success": True,
+                "exists": True,
+                "branch_name": branch_info.name,
+                "branch_url": branch_info.html_url,
+                "branch_sha": branch_info.sha,
+                "branch_protected": branch_info.protected,
+                "commit_message": branch_info.commit_message,
+                "commit_author": branch_info.commit_author,
+                "commit_committer": branch_info.commit_committer,
+                "commit_date": branch_info.commit_date.isoformat(),
+                "commit_url": branch_info.commit_url,
+                "workflow_runs": [
+                    {
+                        "id": r.id,
+                        "name": r.name,
+                        "status": r.status,
+                        "conclusion": r.conclusion,
+                        "html_url": r.html_url,
+                        "event": r.event,
+                        "created_at": r.created_at.isoformat(),
+                    }
+                    for r in workflow_runs
+                ],
+            }
+        except Exception as e:
+            logger.exception("Error getting branch info")
             return {
                 "success": False,
                 "error": str(e),

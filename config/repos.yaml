@@ -1,32 +1,50 @@
 # Helm Release MCP - Repository Configuration
 #
 # Define your repositories here. Each repository needs:
-#   - name: Unique identifier (used in tool names, e.g., {name}__prepare_release)
+#   - name: Unique identifier (used in tool names, e.g., {name}__create_tag)
 #   - github: GitHub path in "owner/repo" format
-#   - type: Repository type ("dify-helm" or "dify-enterprise")
+#   - type: Repository type ("dify", "dify-helm", "dify-enterprise", "dify-enterprise-frontend")
 #   - settings: Type-specific configuration
+#
+# Per-repo tokens: Add github_token in settings to use a different token than default.
+# Environment variables can be interpolated with ${ENV_VAR} syntax.
 #
 # See docs/configuration.md for full schema documentation.
 
-repositories: []
-  # Example: Dify Helm charts repository
-  # - name: dify-helm
-  #   github: langgenius/dify-helm
-  #   type: dify-helm
-  #   description: Dify Helm charts
-  #   settings:
-  #     charts_path: charts/
-  #     publish_workflow: publish.yaml
+repositories:
+  # Dify core services (public)
+  - name: dify
+    github: langgenius/dify
+    type: dify
+    description: Dify core services
+    settings:
+      github_token: ${DIFY_GITHUB_TOKEN}
 
-  # Example: Dify Enterprise repository
-  # - name: dify-enterprise
-  #   github: langgenius/dify-enterprise
-  #   type: dify-enterprise
-  #   description: Dify Enterprise services monorepo
-  #   settings:
-  #     version_file: package.json
-  #     version_path: version
-  #     build_workflow: ci.yaml
-  #     release_workflow: release.yaml
-  #     helm_repo: dify-helm
-  #     helm_chart: dify-enterprise
+  # Dify Helm charts (private)
+  - name: dify-helm
+    github: langgenius/dify-helm
+    type: dify-helm
+    description: Dify Helm charts
+    settings:
+      github_token: ${DIFY_HELM_GITHUB_TOKEN}
+      cve_scan_workflow: .github/workflows/cve.yaml
+      benchmark_workflow: .github/workflows/benchmark.yaml
+      license_review_workflow: .github/workflows/enterprise-license.yaml
+      linear_checklist_workflow: .github/workflows/linear-checklist.yaml
+      release_workflow: .github/workflows/release.yaml
+
+  # Dify Enterprise monorepo (private)
+  - name: dify-enterprise
+    github: langgenius/dify-enterprise
+    type: dify-enterprise
+    description: Dify Enterprise services monorepo
+    settings:
+      github_token: ${DIFY_ENTERPRISE_GITHUB_TOKEN}
+
+  # Dify Enterprise Frontend (private)
+  - name: dify-enterprise-frontend
+    github: langgenius/dify-enterprise-frontend
+    type: dify-enterprise-frontend
+    description: Dify Enterprise frontend
+    settings:
+      github_token: ${DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN}
