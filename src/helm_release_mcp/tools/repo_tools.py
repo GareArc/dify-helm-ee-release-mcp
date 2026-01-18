@@ -1,5 +1,7 @@
 """Dynamic repository-specific MCP tool registration."""
 
+import inspect
+import keyword
 import logging
 from typing import Any
 
@@ -69,11 +71,27 @@ def _create_tool(
         logger.warning(f"Method not found for operation: {operation_name}")
         return
 
-    # Create wrapper that accepts kwargs and calls the method
-    async def tool_wrapper(**kwargs: Any) -> dict[str, Any]:
+    signature = inspect.signature(method)
+    parameters = []
+    for name, param in signature.parameters.items():
+        if name == "self":
+            continue
+
+        safe_name = name
+        if keyword.iskeyword(safe_name):
+            safe_name = f"{safe_name}_"
+
+        parameters.append(
+            param.replace(
+                name=safe_name,
+                kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        )
+
+    async def tool_wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Dynamic tool wrapper."""
         try:
-            result = await method(**kwargs)
+            result = await method(*args, **kwargs)
             return result
         except Exception as e:
             logger.exception(f"Error in {tool_name}")
@@ -82,166 +100,8 @@ def _create_tool(
                 "error": str(e),
             }
 
-    # Set function metadata for MCP
     tool_wrapper.__name__ = tool_name
     tool_wrapper.__doc__ = f"{description}\n\nRepository: {repo.name} ({repo.github_path})"
+    tool_wrapper.__signature__ = inspect.Signature(parameters=parameters)  # type: ignore[attr-defined]
 
-    # Register the tool
-    # Note: FastMCP will use the function signature to determine parameters
-    # Since we use **kwargs, we need to provide parameter info differently
     mcp.tool(name=tool_name, description=tool_wrapper.__doc__)(tool_wrapper)
-
-
-def register_typed_repo_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
-    """Register repository tools with explicit type signatures.
-
-    This alternative registration method creates properly typed tools
-    based on the repo type rather than using dynamic **kwargs.
-
-    Args:
-        mcp: FastMCP server instance.
-        registry: Repository registry.
-    """
-    for repo_name in registry.list_repos():
-        repo = registry.get_repo(repo_name)
-        if repo:
-            _register_typed_tools_for_repo(mcp, repo)
-
-
-def _register_typed_tools_for_repo(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register typed tools for a specific repository.
-
-    Creates tools with proper parameter signatures based on repo type.
-    """
-    if repo.repo_type == "dify":
-        _register_dify_tools(mcp, repo)
-    elif repo.repo_type == "dify-helm":
-        _register_dify_helm_tools(mcp, repo)
-    elif repo.repo_type == "dify-enterprise":
-        _register_dify_enterprise_tools(mcp, repo)
-    elif repo.repo_type == "dify-enterprise-frontend":
-        _register_dify_enterprise_frontend_tools(mcp, repo)
-
-
-def _register_dify_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for a dify repository."""
-
-    @mcp.tool(name=f"{repo.name}__create_release_branch")
-    async def create_release_branch(
-        base_ref: str,
-        branch_name: str,
-    ) -> dict[str, Any]:
-        """Create a new release branch based on a specific ref.
-
-        Args:
-            base_ref: Git ref to base the branch on (tag, branch, or SHA, e.g., "0.15.3", "main").
-            branch_name: Name for the new release branch (e.g., "release/ee-1.0.0").
-        """
-        method = repo.get_operation_method("create_release_branch")
-        if method:
-            return await method(base_ref, branch_name)
-        return {"success": False, "error": "Operation not found"}
-
-
-def _register_dify_helm_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for a dify-helm repository."""
-
-    @mcp.tool(name=f"{repo.name}__trigger_cve_scan")
-    async def trigger_cve_scan(branch: str) -> dict[str, Any]:
-        """Trigger container security scan workflow on a release branch.
-
-        Args:
-            branch: Release branch name (e.g., "release/1.0.0").
-        """
-        method = repo.get_operation_method("trigger_cve_scan")
-        if method:
-            return await method(branch)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__trigger_benchmark")
-    async def trigger_benchmark(branch: str) -> dict[str, Any]:
-        """Trigger benchmark test workflow on a release branch.
-
-        Args:
-            branch: Release branch name (e.g., "release/1.0.0").
-        """
-        method = repo.get_operation_method("trigger_benchmark")
-        if method:
-            return await method(branch)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__trigger_license_review")
-    async def trigger_license_review(branch: str) -> dict[str, Any]:
-        """Trigger dependency license review workflow on a release branch.
-
-        Args:
-            branch: Release branch name (e.g., "release/1.0.0").
-        """
-        method = repo.get_operation_method("trigger_license_review")
-        if method:
-            return await method(branch)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__trigger_linear_checklist")
-    async def trigger_linear_checklist(branch: str) -> dict[str, Any]:
-        """Trigger Linear release checklist workflow on a release branch.
-
-        Args:
-            branch: Release branch name (e.g., "release/1.0.0").
-        """
-        method = repo.get_operation_method("trigger_linear_checklist")
-        if method:
-            return await method(branch)
-        return {"success": False, "error": "Operation not found"}
-
-    @mcp.tool(name=f"{repo.name}__release")
-    async def release(branch: str) -> dict[str, Any]:
-        """Trigger release workflow to publish Helm chart to gh-pages.
-
-        Args:
-            branch: Release branch name (e.g., "release/1.0.0").
-        """
-        method = repo.get_operation_method("release")
-        if method:
-            return await method(branch)
-        return {"success": False, "error": "Operation not found"}
-
-
-def _register_dify_enterprise_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for a dify-enterprise repository."""
-
-    @mcp.tool(name=f"{repo.name}__create_tag")
-    async def create_tag(
-        branch: str,
-        tag: str,
-    ) -> dict[str, Any]:
-        """Create a tag on a branch to trigger build/CI workflow.
-
-        Args:
-            branch: Branch name to create the tag on (e.g., "release/1.0.0").
-            tag: Tag name (e.g., "v1.0.0").
-        """
-        method = repo.get_operation_method("create_tag")
-        if method:
-            return await method(branch, tag)
-        return {"success": False, "error": "Operation not found"}
-
-
-def _register_dify_enterprise_frontend_tools(mcp: FastMCP, repo: BaseRepo) -> None:
-    """Register tools for a dify-enterprise-frontend repository."""
-
-    @mcp.tool(name=f"{repo.name}__create_tag")
-    async def create_tag(
-        branch: str,
-        tag: str,
-    ) -> dict[str, Any]:
-        """Create a tag on a branch to trigger build/CI workflow.
-
-        Args:
-            branch: Branch name to create the tag on (e.g., "release/1.0.0").
-            tag: Tag name (e.g., "v1.0.0").
-        """
-        method = repo.get_operation_method("create_tag")
-        if method:
-            return await method(branch, tag)
-        return {"success": False, "error": "Operation not found"}

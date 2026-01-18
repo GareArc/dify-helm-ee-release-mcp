@@ -392,7 +392,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
         try:
-            await repo_obj.ensure_workspace()
+            await repo_obj._ensure_workspace()
             repo_path = registry.services.workspace.get_repo_path(repo_obj.name)
             git_repo = registry.services.git.open(repo_path)
 

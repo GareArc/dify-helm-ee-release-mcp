@@ -8,7 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from helm_release_mcp.repos.registry import RepoRegistry
 from helm_release_mcp.settings import get_settings
 from helm_release_mcp.tools.global_tools import register_global_tools
-from helm_release_mcp.tools.repo_tools import register_typed_repo_tools
+from helm_release_mcp.tools.repo_tools import register_repo_tools
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def create_server() -> FastMCP:
     register_global_tools(mcp, registry)
 
     # Register repository-specific tools
-    register_typed_repo_tools(mcp, registry)
+    register_repo_tools(mcp, registry)
 
     logger.info(f"Server initialized with {len(registry.list_repos())} repositories")
 

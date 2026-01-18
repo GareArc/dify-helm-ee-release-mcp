@@ -233,7 +233,7 @@ class BaseRepo(ABC):
             return None
         return getattr(self, operation_name, None)
 
-    async def ensure_workspace(self) -> None:
+    async def _ensure_workspace(self) -> None:
         """Ensure the repository is cloned and up to date."""
         default_branch = self.github.get_default_branch(self.github_path)
         self.services.workspace.ensure_repo(
