@@ -5,7 +5,8 @@ PYTHON := uv run python
 APP_NAME := helm-release-mcp
 VERSION := $(shell grep -m1 'version' pyproject.toml | cut -d'"' -f2)
 DOCKER_REGISTRY ?= ghcr.io
-DOCKER_IMAGE := $(DOCKER_REGISTRY)/$(APP_NAME)
+DOCKER_ORG ?=
+DOCKER_IMAGE := $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(APP_NAME)
 
 # Colors
 BLUE := \033[34m
@@ -63,16 +64,28 @@ test-watch: ## Run tests in watch mode
 # Running
 # ============================================================================
 
-.PHONY: check-token
-check-token:
+.PHONY: check-tokens
+check-tokens:
 ifndef HELM_MCP_GITHUB_TOKEN
 	$(error HELM_MCP_GITHUB_TOKEN is not set. Run: export HELM_MCP_GITHUB_TOKEN=ghp_xxx)
 endif
+ifndef DIFY_GITHUB_TOKEN
+	$(error DIFY_GITHUB_TOKEN is not set. Run: export DIFY_GITHUB_TOKEN=ghp_xxx)
+endif
+ifndef DIFY_HELM_GITHUB_TOKEN
+	$(error DIFY_HELM_GITHUB_TOKEN is not set. Run: export DIFY_HELM_GITHUB_TOKEN=ghp_xxx)
+endif
+ifndef DIFY_ENTERPRISE_GITHUB_TOKEN
+	$(error DIFY_ENTERPRISE_GITHUB_TOKEN is not set. Run: export DIFY_ENTERPRISE_GITHUB_TOKEN=ghp_xxx)
+endif
+ifndef DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN
+	$(error DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN is not set. Run: export DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN=ghp_xxx)
+endif
 
-run: check-token ## Run the MCP server (requires HELM_MCP_GITHUB_TOKEN)
+run: check-tokens ## Run the MCP server (requires GitHub tokens)
 	uv run $(APP_NAME)
 
-run-debug: check-token ## Run with debug logging
+run-debug: check-tokens ## Run with debug logging
 	HELM_MCP_LOG_LEVEL=DEBUG uv run $(APP_NAME)
 
 # ============================================================================
@@ -93,7 +106,7 @@ clean: ## Clean build artifacts
 # ============================================================================
 
 docker-build: ## Build Docker image
-	docker build -t $(DOCKER_IMAGE):$(VERSION) -t $(DOCKER_IMAGE):latest .
+	./scripts/docker-build.sh
 
 docker-run: ## Run Docker container
 	docker run --rm -it \
@@ -102,8 +115,7 @@ docker-run: ## Run Docker container
 		$(DOCKER_IMAGE):latest
 
 docker-push: ## Push Docker image to registry
-	docker push $(DOCKER_IMAGE):$(VERSION)
-	docker push $(DOCKER_IMAGE):latest
+	./scripts/docker-push.sh
 
 # ============================================================================
 # Release

@@ -5,7 +5,7 @@ MCP (Model Context Protocol) server for automating Dify EE Helm chart releases a
 ## Features
 
 - **Multi-repo management**: Configure and manage multiple repositories from a single server
-- **Release branch creation**: Create release branches from community version tags
+- **Release branch creation**: Create release branches from any git ref (tag, branch, SHA)
 - **Pre-release checks**: Trigger CVE scans, benchmarks, license reviews, and Linear checklists
 - **Release workflows**: Publish Helm charts via workflow triggers
 - **Tag-based builds**: Trigger builds by creating tags on release branches
@@ -67,17 +67,32 @@ uv sync
        type: dify
        description: Dify core services
 
-     - name: dify-helm
-       github: langgenius/dify-helm
-       type: dify-helm
-       description: Dify Helm charts
-       settings:
-         github_token: ${DIFY_HELM_GITHUB_TOKEN}
-         cve_scan_workflow: .github/workflows/cve.yaml
-         benchmark_workflow: .github/workflows/benchmark.yaml
-         license_review_workflow: .github/workflows/enterprise-license.yaml
-         linear_checklist_workflow: .github/workflows/linear-checklist.yaml
-         release_workflow: .github/workflows/release.yaml
+      - name: dify-helm
+        github: langgenius/dify-helm
+        type: dify-helm
+        description: Dify Helm charts
+        settings:
+          github_token: ${DIFY_HELM_GITHUB_TOKEN}
+          cve_scan_workflow: .github/workflows/cve.yaml
+          benchmark_workflow: .github/workflows/benchmark.yaml
+          license_review_workflow: .github/workflows/enterprise-license.yaml
+          linear_checklist_workflow: .github/workflows/linear-checklist.yaml
+          release_workflow: .github/workflows/release.yaml
+
+      - name: dify-enterprise
+        github: langgenius/dify-enterprise
+        type: dify-enterprise
+        description: Dify Enterprise services monorepo
+        settings:
+          github_token: ${DIFY_ENTERPRISE_GITHUB_TOKEN}
+
+      - name: dify-enterprise-frontend
+        github: langgenius/dify-enterprise-frontend
+        type: dify-enterprise-frontend
+        description: Dify Enterprise frontend
+        settings:
+          github_token: ${DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN}
+
    ```
 
    See [docs/configuration.md](docs/configuration.md) for full configuration reference.
@@ -100,8 +115,10 @@ For Claude Desktop, add to your MCP settings:
       "args": ["--directory", "/path/to/helm-release-mcp", "run", "helm-release-mcp"],
       "env": {
         "HELM_MCP_GITHUB_TOKEN": "ghp_xxxx",
-        "DIFY_HELM_GITHUB_TOKEN": "ghp_yyyy",
-        "DIFY_ENTERPRISE_GITHUB_TOKEN": "ghp_zzzz"
+        "DIFY_GITHUB_TOKEN": "ghp_yyyy",
+        "DIFY_HELM_GITHUB_TOKEN": "ghp_zzzz",
+        "DIFY_ENTERPRISE_GITHUB_TOKEN": "ghp_aaaa",
+        "DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN": "ghp_bbbb"
       }
     }
   }
@@ -122,14 +139,6 @@ For Claude Desktop, add to your MCP settings:
 
 - `dify__create_release_branch(base_ref, branch_name)` - Create release branch from any git ref (tag, branch, or SHA)
 
-### Dify Helm Operations
-
-- `dify-helm__trigger_cve_scan(branch)` - Trigger container security scan on release branch
-- `dify-helm__trigger_benchmark(branch)` - Trigger benchmark test on release branch
-- `dify-helm__trigger_license_review(branch)` - Trigger dependency license review on release branch
-- `dify-helm__trigger_linear_checklist(branch)` - Trigger Linear release checklist on release branch
-- `dify-helm__release(branch)` - Trigger release workflow to publish Helm chart
-
 ### Dify Enterprise Operations
 
 - `dify-enterprise__create_tag(branch, tag)` - Create tag on branch to trigger build/CI
@@ -137,6 +146,14 @@ For Claude Desktop, add to your MCP settings:
 ### Dify Enterprise Frontend Operations
 
 - `dify-enterprise-frontend__create_tag(branch, tag)` - Create tag on branch to trigger build/CI
+
+### Dify Helm Operations
+
+- `dify-helm__trigger_cve_scan(branch)` - Trigger container security scan on release branch
+- `dify-helm__trigger_benchmark(branch)` - Trigger benchmark test on release branch
+- `dify-helm__trigger_license_review(branch)` - Trigger dependency license review on release branch
+- `dify-helm__trigger_linear_checklist(branch)` - Trigger Linear release checklist on release branch
+- `dify-helm__release(branch)` - Trigger release workflow to publish Helm chart
 
 ## Example Workflow
 
@@ -183,6 +200,15 @@ For the Dify Enterprise monorepo. Supports:
 
 For the Dify Enterprise Frontend repository. Supports:
 - Tag creation on branches to trigger builds
+
+## DockerHub Release
+
+Create a git tag like `v1.2.3` to trigger the DockerHub publish workflow. Configure these repository secrets:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+
+Images will publish to `DOCKERHUB_USERNAME/helm-release-mcp` with tags `vX.Y.Z` and `latest`.
 
 ## Development
 
