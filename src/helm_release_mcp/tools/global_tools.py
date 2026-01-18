@@ -7,7 +7,6 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from helm_release_mcp.core.git import GitError
 from helm_release_mcp.repos.registry import RepoRegistry
 
 logger = logging.getLogger(__name__)
@@ -374,15 +373,13 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
-    async def create_branch(
-        repo: str, branch: str, start_point: str | None = None
-    ) -> dict[str, Any]:
-        """Create a new branch in a repository.
+    async def create_branch(repo: str, branch: str, base_ref: str | None = None) -> dict[str, Any]:
+        """Create a new branch in a repository (remote GitHub ref).
 
         Args:
             repo: Repository name.
             branch: Branch name to create.
-            start_point: Optional ref to base the branch on.
+            base_ref: Optional Git ref to base the branch on (tag, branch, or SHA).
         """
         repo_obj = registry.get_repo(repo)
         if not repo_obj:
@@ -392,28 +389,59 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
         try:
-            await repo_obj._ensure_workspace()
-            repo_path = registry.services.workspace.get_repo_path(repo_obj.name)
-            git_repo = registry.services.git.open(repo_path)
+            github_repo = repo_obj.github.get_repo(repo_obj.github_path)
 
-            if start_point is None:
-                default_branch = registry.services.github.get_default_branch(repo_obj.github_path)
-                start_point = f"origin/{default_branch}"
+            if base_ref is None:
+                base_ref = repo_obj.github.get_default_branch(repo_obj.github_path)
 
-            registry.services.git.create_branch(
-                git_repo,
-                branch,
-                start_point=start_point,
-                checkout=False,
-            )
+            base_sha = None
+
+            try:
+                ref = github_repo.get_git_ref(f"tags/{base_ref}")
+                base_sha = ref.object.sha
+            except Exception:
+                pass
+
+            if not base_sha:
+                try:
+                    branch_ref = github_repo.get_branch(base_ref)
+                    base_sha = branch_ref.commit.sha
+                except Exception:
+                    pass
+
+            if not base_sha:
+                try:
+                    commit = github_repo.get_commit(base_ref)
+                    base_sha = commit.sha
+                except Exception:
+                    pass
+
+            if not base_sha:
+                return {
+                    "success": False,
+                    "error": f"Could not resolve ref: {base_ref}",
+                }
+
+            try:
+                github_repo.get_branch(branch)
+                return {
+                    "success": False,
+                    "error": f"Branch already exists: {branch}",
+                }
+            except Exception:
+                pass
+
+            github_repo.create_git_ref(ref=f"refs/heads/{branch}", sha=base_sha)
 
             return {
                 "success": True,
                 "repo": repo,
                 "branch": branch,
-                "start_point": start_point,
+                "base_ref": base_ref,
+                "sha": base_sha,
+                "url": f"https://github.com/{repo_obj.github_path}/tree/{branch}",
             }
-        except GitError as e:
+        except Exception as e:
             logger.exception("Error creating branch")
             return {
                 "success": False,

@@ -132,12 +132,9 @@ For Claude Desktop, add to your MCP settings:
 - `list_repos()` - List all managed repositories
 - `get_repo_status(repo)` - Get high-level status of a repository
 - `get_repo_operations(repo)` - Get available operations for a repository
-- `create_branch(repo, branch, start_point)` - Create a branch from a repo/ref
+- `create_branch(repo, branch, base_ref)` - Create a remote branch from a git ref (tag, branch, or SHA)
 - `get_release_branch_info(repo, branch)` - Get branch info with commit details and workflow runs
 
-### Dify Operations
-
-- `dify__create_release_branch(base_ref, branch_name)` - Create release branch from any git ref (tag, branch, or SHA)
 
 ### Dify Enterprise Operations
 

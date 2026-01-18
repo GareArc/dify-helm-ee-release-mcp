@@ -1,11 +1,9 @@
 """Dify repository type."""
 
 from helm_release_mcp.repos.base import BaseRepo, CoreServices, RepoConfig, RepoStatus
-from helm_release_mcp.repos.types.dify.branch import BranchOperationsMixin
 
 
 class DifyRepo(
-    BranchOperationsMixin,
     BaseRepo,
     repo_type="dify",
 ):
