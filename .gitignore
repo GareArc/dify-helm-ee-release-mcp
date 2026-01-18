@@ -51,9 +51,6 @@ dmypy.json
 # Ruff
 .ruff_cache/
 
-# UV
-uv.lock
-
 # Project specific
 workspace/
 
