@@ -38,7 +38,7 @@ RUN useradd --create-home --shell /bin/bash appuser
 # Copy virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy config directory structure
+COPY src/ ./src/
 COPY config/ ./config/
 
 # Set environment
