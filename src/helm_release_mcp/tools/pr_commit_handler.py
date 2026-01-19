@@ -109,12 +109,12 @@ class PrCommitHandler:
         Returns:
             True if commit is in the branch, False otherwise.
         """
-        # When comparing commit vs branch:
-        # - "identical": commit == branch head -> commit is in branch
-        # - "behind": commit is behind branch (ancestor) -> commit is in branch
-        # - "ahead": commit is ahead of branch -> commit is NOT in branch
-        # - "diverged": commit and branch diverged -> commit is NOT in branch
+        # When comparing commit...branch via GitHub API:
+        # - "identical": commit == branch head -> commit IS in branch
+        # - "ahead": branch ahead of commit -> commit is ancestor -> commit IS in branch
+        # - "behind": branch behind commit -> commit not in branch yet
+        # - "diverged": they diverged -> commit NOT in branch
 
         status = compare_result.get("status")
 
-        return status in ("identical", "behind")
+        return status in ("identical", "ahead")
