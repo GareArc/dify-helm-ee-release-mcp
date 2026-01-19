@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -47,16 +47,6 @@ class Settings(BaseSettings):
     auth_token: str | None = Field(
         default=None,
         description="Shared bearer token required for MCP HTTP requests",
-    )
-
-    auth_issuer_url: AnyHttpUrl | None = Field(
-        default=None,
-        description="OAuth issuer URL used for auth metadata",
-    )
-
-    auth_resource_url: AnyHttpUrl | None = Field(
-        default=None,
-        description="OAuth resource server URL used for auth metadata",
     )
 
     transport: Literal["stdio", "sse", "streamable-http"] = Field(

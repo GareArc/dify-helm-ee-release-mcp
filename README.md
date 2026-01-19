@@ -109,6 +109,28 @@ To run over HTTP locally:
 HELM_MCP_TRANSPORT=streamable-http HELM_MCP_HOST=0.0.0.0 HELM_MCP_PORT=8000 uv run helm-release-mcp
 ```
 
+With authentication enabled:
+
+```bash
+HELM_MCP_AUTH_TOKEN=your-secret-token HELM_MCP_TRANSPORT=streamable-http HELM_MCP_HOST=0.0.0.0 HELM_MCP_PORT=8000 uv run helm-release-mcp
+```
+
+### HTTP API Endpoints
+
+When running with HTTP transport, the server exposes:
+
+| Endpoint | Auth Required | Description |
+|----------|---------------|-------------|
+| `POST /mcp` | Yes (if `HELM_MCP_AUTH_TOKEN` set) | MCP protocol endpoint |
+| `GET /api/health` | No | Health check endpoint |
+| `GET /api/tool-calls` | Yes | List pending tool calls |
+
+Authentication uses Bearer token in the `Authorization` header:
+
+```bash
+curl -H "Authorization: Bearer your-secret-token" http://localhost:8000/mcp
+```
+
 ### MCP Client Configuration
 
 For Claude Desktop, add to your MCP settings:
@@ -122,8 +144,6 @@ For Claude Desktop, add to your MCP settings:
       "env": {
         "HELM_MCP_GITHUB_TOKEN": "ghp_xxxx",
         "HELM_MCP_AUTH_TOKEN": "your-long-random-token",
-        "HELM_MCP_AUTH_ISSUER_URL": "https://mcp.example.com",
-        "HELM_MCP_AUTH_RESOURCE_URL": "https://mcp.example.com",
         "DIFY_GITHUB_TOKEN": "ghp_yyyy",
         "DIFY_HELM_GITHUB_TOKEN": "ghp_zzzz",
         "DIFY_ENTERPRISE_GITHUB_TOKEN": "ghp_aaaa",
