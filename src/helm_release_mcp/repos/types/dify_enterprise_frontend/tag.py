@@ -1,18 +1,22 @@
 """Tag operations for Dify Enterprise Frontend repo."""
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from helm_release_mcp.repos.types.dify_enterprise_frontend.repo import (
-        DifyEnterpriseFrontendRepo,
-    )
+from abc import ABC, abstractmethod
+from typing import Any
 
 
-class TagOperationsMixin:
+class TagOperationsMixin(ABC):
     """Mixin providing tag operations for DifyEnterpriseFrontendRepo."""
 
+    @property
+    @abstractmethod
+    def github(self) -> Any: ...
+
+    @property
+    @abstractmethod
+    def github_path(self) -> str: ...
+
     async def create_tag(
-        self: "DifyEnterpriseFrontendRepo",
+        self,
         branch: str,
         tag: str,
     ) -> dict[str, Any]:

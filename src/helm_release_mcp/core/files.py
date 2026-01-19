@@ -42,7 +42,8 @@ class FileService:
             with path.open("r") as f:
                 data = self._yaml.load(f)
                 normalized = dict(data) if data else {}
-                return self._expand_env_vars(normalized)
+                expanded = self._expand_env_vars(normalized)
+                return expanded if isinstance(expanded, dict) else {}
         except Exception as e:
             raise ValueError(f"Failed to parse YAML file {path}: {e}") from e
 
@@ -97,7 +98,8 @@ class FileService:
             raise FileNotFoundError(f"JSON file not found: {path}")
 
         with path.open("r") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
 
     def write_json(self, path: Path, data: dict[str, Any], *, indent: int = 2) -> None:
         """Write data to a JSON file.

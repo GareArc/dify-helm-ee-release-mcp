@@ -248,6 +248,9 @@ dify-enterprise-frontend__create_tag
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `HELM_MCP_GITHUB_TOKEN` | Yes | - | Default GitHub Personal Access Token |
+| `HELM_MCP_AUTH_TOKEN` | No | - | Shared bearer token required for MCP HTTP transports |
+| `HELM_MCP_AUTH_ISSUER_URL` | No | - | OAuth issuer URL used for auth metadata |
+| `HELM_MCP_AUTH_RESOURCE_URL` | No | - | OAuth resource server URL used for auth metadata |
 | `HELM_MCP_CONFIG_PATH` | No | `config/repos.yaml` | Path to configuration file |
 | `HELM_MCP_WORKSPACE_DIR` | No | `~/.helm-release-mcp/workspace` | Directory for cloning repos |
 | `HELM_MCP_LOG_LEVEL` | No | `INFO` | Logging level |
@@ -277,6 +280,12 @@ If `github_token` is not specified, the default `HELM_MCP_GITHUB_TOKEN` is used.
 ### Environment Variable Interpolation
 
 `repos.yaml` supports `${ENV_VAR}` interpolation for string values. Missing variables resolve to an empty string.
+
+### MCP HTTP Authentication
+
+When running MCP over SSE or Streamable HTTP, you can enable a shared bearer token by setting `HELM_MCP_AUTH_TOKEN`. The server will require the header `Authorization: Bearer <token>` on all MCP HTTP requests.
+
+If your client expects OAuth metadata, set `HELM_MCP_AUTH_ISSUER_URL` and `HELM_MCP_AUTH_RESOURCE_URL`. These are used only for auth metadata and do not change token validation.
 
 ## Adding a New Repository Type
 

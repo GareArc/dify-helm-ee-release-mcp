@@ -1,8 +1,11 @@
 """FastMCP server setup and configuration."""
 
+import hmac
 import logging
 from pathlib import Path
 
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 
 from helm_release_mcp.repos.registry import RepoRegistry
@@ -11,6 +14,16 @@ from helm_release_mcp.tools.global_tools import register_global_tools
 from helm_release_mcp.tools.repo_tools import register_repo_tools
 
 logger = logging.getLogger(__name__)
+
+
+class StaticTokenVerifier(TokenVerifier):
+    def __init__(self, token: str) -> None:
+        self._token = token
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        if hmac.compare_digest(token, self._token):
+            return AccessToken(token=token, client_id="static", scopes=[], expires_at=None)
+        return None
 
 
 def create_server() -> FastMCP:
@@ -43,6 +56,19 @@ def create_server() -> FastMCP:
         github_api_base_url=settings.github_api_base_url,
     )
 
+    auth_settings: AuthSettings | None = None
+    token_verifier: StaticTokenVerifier | None = None
+    if settings.auth_token:
+        if not settings.auth_issuer_url:
+            raise ValueError(
+                "HELM_MCP_AUTH_ISSUER_URL must be set when HELM_MCP_AUTH_TOKEN is used"
+            )
+        auth_settings = AuthSettings(
+            issuer_url=settings.auth_issuer_url,
+            resource_server_url=settings.auth_resource_url,
+        )
+        token_verifier = StaticTokenVerifier(settings.auth_token)
+
     # Create FastMCP server
     mcp = FastMCP(
         "Helm Release MCP",
@@ -59,6 +85,8 @@ def create_server() -> FastMCP:
         2. Trigger repo-specific workflows.
         3. Track workflow runs with `check_workflow` or `wait_for_workflow`.
         """,
+        auth=auth_settings,
+        token_verifier=token_verifier,
     )
 
     # Register global tools

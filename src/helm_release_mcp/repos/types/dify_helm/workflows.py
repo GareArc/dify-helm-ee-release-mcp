@@ -1,16 +1,25 @@
 """Workflow operations for Dify Helm repo."""
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from helm_release_mcp.repos.types.dify_helm.repo import DifyHelmRepo
+from abc import ABC, abstractmethod
+from typing import Any
 
 
-class WorkflowOperationsMixin:
+class WorkflowOperationsMixin(ABC):
     """Mixin providing workflow operations for DifyHelmRepo."""
 
+    @property
+    @abstractmethod
+    def github(self) -> Any: ...
+
+    @property
+    @abstractmethod
+    def github_path(self) -> str: ...
+
+    @abstractmethod
+    def _get_setting(self, key: str, default: Any = None) -> Any: ...
+
     async def trigger_cve_scan(
-        self: "DifyHelmRepo",
+        self,
         branch: str,
     ) -> dict[str, Any]:
         """Trigger container security scan workflow on a release branch."""
@@ -21,7 +30,7 @@ class WorkflowOperationsMixin:
         return await self._trigger_workflow(workflow, branch, "CVE scan")
 
     async def trigger_benchmark(
-        self: "DifyHelmRepo",
+        self,
         branch: str,
     ) -> dict[str, Any]:
         """Trigger benchmark test workflow on a release branch."""
@@ -32,7 +41,7 @@ class WorkflowOperationsMixin:
         return await self._trigger_workflow(workflow, branch, "benchmark test")
 
     async def trigger_license_review(
-        self: "DifyHelmRepo",
+        self,
         branch: str,
     ) -> dict[str, Any]:
         """Trigger dependency license review workflow on a release branch."""
@@ -43,7 +52,7 @@ class WorkflowOperationsMixin:
         return await self._trigger_workflow(workflow, branch, "license review")
 
     async def trigger_linear_checklist(
-        self: "DifyHelmRepo",
+        self,
         branch: str,
     ) -> dict[str, Any]:
         """Trigger Linear release checklist workflow on a release branch."""
@@ -54,7 +63,7 @@ class WorkflowOperationsMixin:
         return await self._trigger_workflow(workflow, branch, "Linear checklist")
 
     async def release(
-        self: "DifyHelmRepo",
+        self,
         branch: str,
     ) -> dict[str, Any]:
         """Trigger release workflow to publish Helm chart."""
@@ -65,7 +74,7 @@ class WorkflowOperationsMixin:
         return await self._trigger_workflow(workflow, branch, "release")
 
     async def _trigger_workflow(
-        self: "DifyHelmRepo",
+        self,
         workflow: str,
         branch: str,
         name: str,

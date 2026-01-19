@@ -115,6 +115,9 @@ For Claude Desktop, add to your MCP settings:
       "args": ["--directory", "/path/to/helm-release-mcp", "run", "helm-release-mcp"],
       "env": {
         "HELM_MCP_GITHUB_TOKEN": "ghp_xxxx",
+        "HELM_MCP_AUTH_TOKEN": "your-long-random-token",
+        "HELM_MCP_AUTH_ISSUER_URL": "https://mcp.example.com",
+        "HELM_MCP_AUTH_RESOURCE_URL": "https://mcp.example.com",
         "DIFY_GITHUB_TOKEN": "ghp_yyyy",
         "DIFY_HELM_GITHUB_TOKEN": "ghp_zzzz",
         "DIFY_ENTERPRISE_GITHUB_TOKEN": "ghp_aaaa",

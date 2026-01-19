@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AnyHttpUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,8 +17,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Required
-    github_token: str = Field(description="GitHub Personal Access Token with repo scope")
+    github_token: str = Field(
+        default="",
+        description="GitHub Personal Access Token with repo scope",
+    )
 
     # Optional with defaults
     workspace_dir: Path = Field(
@@ -42,6 +44,21 @@ class Settings(BaseSettings):
         description="GitHub API base URL (for GitHub Enterprise)",
     )
 
+    auth_token: str | None = Field(
+        default=None,
+        description="Shared bearer token required for MCP HTTP requests",
+    )
+
+    auth_issuer_url: AnyHttpUrl | None = Field(
+        default=None,
+        description="OAuth issuer URL used for auth metadata",
+    )
+
+    auth_resource_url: AnyHttpUrl | None = Field(
+        default=None,
+        description="OAuth resource server URL used for auth metadata",
+    )
+
     # Timeouts
     workflow_poll_interval: int = Field(
         default=10,
@@ -63,4 +80,6 @@ def get_settings() -> Settings:
     global _settings
     if _settings is None:
         _settings = Settings()
+    if not _settings.github_token:
+        raise ValueError("HELM_MCP_GITHUB_TOKEN must be set")
     return _settings
