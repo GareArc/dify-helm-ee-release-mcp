@@ -4,7 +4,7 @@ from helm_release_mcp.repos.base import BaseRepo, CoreServices, RepoConfig, Repo
 from helm_release_mcp.repos.types.dify_helm.workflows import WorkflowOperationsMixin
 
 
-class DifyHelmRepo(WorkflowOperationsMixin, BaseRepo, repo_type="dify-helm"):
+class DifyHelmRepo(BaseRepo, WorkflowOperationsMixin, repo_type="dify-helm"):
     """Repository type for Dify Helm charts."""
 
     def __init__(self, config: RepoConfig, services: CoreServices) -> None:

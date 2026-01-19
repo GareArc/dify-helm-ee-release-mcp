@@ -3,9 +3,9 @@
 import inspect
 import keyword
 import logging
-from typing import Any
+from typing import Any, get_type_hints
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from helm_release_mcp.repos.base import BaseRepo
 from helm_release_mcp.repos.registry import RepoRegistry
@@ -73,6 +73,14 @@ def _create_tool(
 
     signature = inspect.signature(method)
     parameters = []
+    annotations: dict[str, Any] = {}
+    
+    # Get type hints from the original method
+    try:
+        method_hints = get_type_hints(method, include_extras=True)
+    except Exception:
+        method_hints = {}
+    
     for name, param in signature.parameters.items():
         if name == "self":
             continue
@@ -80,6 +88,12 @@ def _create_tool(
         safe_name = name
         if keyword.iskeyword(safe_name):
             safe_name = f"{safe_name}_"
+
+        # Copy annotation if available
+        if name in method_hints:
+            annotations[safe_name] = method_hints[name]
+        elif param.annotation != inspect.Parameter.empty:
+            annotations[safe_name] = param.annotation
 
         parameters.append(
             param.replace(
@@ -103,5 +117,10 @@ def _create_tool(
     tool_wrapper.__name__ = tool_name
     tool_wrapper.__doc__ = f"{description}\n\nRepository: {repo.name} ({repo.github_path})"
     tool_wrapper.__signature__ = inspect.Signature(parameters=parameters)  # type: ignore[attr-defined]
+    tool_wrapper.__annotations__ = annotations.copy()
+    tool_wrapper.__annotations__["return"] = dict[str, Any]
 
-    mcp.tool(name=tool_name, description=tool_wrapper.__doc__)(tool_wrapper)
+    mcp.tool(
+        name=tool_name,
+        description=tool_wrapper.__doc__,
+    )(tool_wrapper)
