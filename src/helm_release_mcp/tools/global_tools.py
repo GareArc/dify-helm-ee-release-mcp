@@ -5,7 +5,7 @@ import logging
 from dataclasses import asdict
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from helm_release_mcp.repos.registry import RepoRegistry
 

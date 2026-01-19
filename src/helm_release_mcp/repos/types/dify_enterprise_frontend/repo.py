@@ -5,8 +5,8 @@ from helm_release_mcp.repos.types.dify_enterprise_frontend.tag import TagOperati
 
 
 class DifyEnterpriseFrontendRepo(
-    TagOperationsMixin,
     BaseRepo,
+    TagOperationsMixin,
     repo_type="dify-enterprise-frontend",
 ):
     """Repository type for Dify Enterprise Frontend."""

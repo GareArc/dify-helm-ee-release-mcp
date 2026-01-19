@@ -5,8 +5,8 @@ from helm_release_mcp.repos.types.dify_enterprise.tag import TagOperationsMixin
 
 
 class DifyEnterpriseRepo(
-    TagOperationsMixin,
     BaseRepo,
+    TagOperationsMixin,
     repo_type="dify-enterprise",
 ):
     """Repository type for Dify Enterprise monorepo."""
