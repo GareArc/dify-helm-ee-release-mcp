@@ -58,8 +58,6 @@ def create_server() -> FastMCP:
         1. Discover repositories and operations.
         2. Trigger repo-specific workflows.
         3. Track workflow runs with `check_workflow` or `wait_for_workflow`.
-
-        Background: see docs/configuration.md and docs/repos/ for repo types and workflow mappings.
         """,
     )
 
