@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  helm-release-mcp:
+    image: garethcxydify/helm-release-mcp:latest
+    ports:
+      - "8000:8000"
+    environment:
+      HELM_MCP_TRANSPORT: streamable-http
+      HELM_MCP_HOST: 0.0.0.0
+      HELM_MCP_PORT: 8000
+      HELM_MCP_AUTH_TOKEN: ${HELM_MCP_AUTH_TOKEN}
+      HELM_MCP_AUTH_ISSUER_URL: ${HELM_MCP_AUTH_ISSUER_URL}
+      HELM_MCP_AUTH_RESOURCE_URL: ${HELM_MCP_AUTH_RESOURCE_URL}
+      HELM_MCP_GITHUB_TOKEN: ${HELM_MCP_GITHUB_TOKEN}
+      DIFY_GITHUB_TOKEN: ${DIFY_GITHUB_TOKEN}
+      DIFY_HELM_GITHUB_TOKEN: ${DIFY_HELM_GITHUB_TOKEN}
+      DIFY_ENTERPRISE_GITHUB_TOKEN: ${DIFY_ENTERPRISE_GITHUB_TOKEN}
+      DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN: ${DIFY_ENTERPRISE_FRONTEND_GITHUB_TOKEN}
+    volumes:
+      - ./config:/app/config:ro
+      - ./workspace:/app/workspace

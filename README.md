@@ -103,6 +103,12 @@ uv sync
 uv run helm-release-mcp
 ```
 
+To run over HTTP locally:
+
+```bash
+HELM_MCP_TRANSPORT=streamable-http HELM_MCP_HOST=0.0.0.0 HELM_MCP_PORT=8000 uv run helm-release-mcp
+```
+
 ### MCP Client Configuration
 
 For Claude Desktop, add to your MCP settings:

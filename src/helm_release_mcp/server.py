@@ -87,6 +87,8 @@ def create_server() -> FastMCP:
         """,
         auth=auth_settings,
         token_verifier=token_verifier,
+        host=settings.host,
+        port=settings.port,
     )
 
     # Register global tools

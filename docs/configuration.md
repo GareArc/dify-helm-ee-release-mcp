@@ -251,6 +251,9 @@ dify-enterprise-frontend__create_tag
 | `HELM_MCP_AUTH_TOKEN` | No | - | Shared bearer token required for MCP HTTP transports |
 | `HELM_MCP_AUTH_ISSUER_URL` | No | - | OAuth issuer URL used for auth metadata |
 | `HELM_MCP_AUTH_RESOURCE_URL` | No | - | OAuth resource server URL used for auth metadata |
+| `HELM_MCP_TRANSPORT` | No | `stdio` | MCP transport (`stdio`, `sse`, `streamable-http`) |
+| `HELM_MCP_HOST` | No | `127.0.0.1` | Host interface for HTTP transports |
+| `HELM_MCP_PORT` | No | `8000` | Port for HTTP transports |
 | `HELM_MCP_CONFIG_PATH` | No | `config/repos.yaml` | Path to configuration file |
 | `HELM_MCP_WORKSPACE_DIR` | No | `~/.helm-release-mcp/workspace` | Directory for cloning repos |
 | `HELM_MCP_LOG_LEVEL` | No | `INFO` | Logging level |

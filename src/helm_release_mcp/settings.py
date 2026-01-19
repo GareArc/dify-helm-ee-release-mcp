@@ -59,6 +59,21 @@ class Settings(BaseSettings):
         description="OAuth resource server URL used for auth metadata",
     )
 
+    transport: Literal["stdio", "sse", "streamable-http"] = Field(
+        default="stdio",
+        description="MCP transport to run (stdio, sse, streamable-http)",
+    )
+
+    host: str = Field(
+        default="127.0.0.1",
+        description="Host interface for HTTP transports",
+    )
+
+    port: int = Field(
+        default=8000,
+        description="Port for HTTP transports",
+    )
+
     # Timeouts
     workflow_poll_interval: int = Field(
         default=10,
