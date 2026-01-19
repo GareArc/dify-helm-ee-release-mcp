@@ -9,6 +9,7 @@ from fastapi import Response
 from helm_release_mcp.api import router
 from helm_release_mcp.api.tool_calls import router as tool_calls_router
 
+
 def main() -> None:
     settings = get_settings()
     server = create_server()

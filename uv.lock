@@ -625,6 +625,11 @@ dev = [
     { name = "ruff" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.128.0" },
@@ -642,6 +647,9 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.40.0" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.14.13" }]
 
 [[package]]
 name = "httpcore"

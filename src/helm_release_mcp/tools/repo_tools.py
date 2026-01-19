@@ -74,13 +74,13 @@ def _create_tool(
     signature = inspect.signature(method)
     parameters = []
     annotations: dict[str, Any] = {}
-    
+
     # Get type hints from the original method
     try:
         method_hints = get_type_hints(method, include_extras=True)
     except Exception:
         method_hints = {}
-    
+
     for name, param in signature.parameters.items():
         if name == "self":
             continue

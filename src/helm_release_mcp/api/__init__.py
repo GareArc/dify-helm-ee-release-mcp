@@ -9,8 +9,10 @@ from fastapi import Depends
 
 router = APIRouter()
 
+
 class HealthCheckResponse(BaseModel):
     status: str
+
 
 security = HTTPBearer()
 
