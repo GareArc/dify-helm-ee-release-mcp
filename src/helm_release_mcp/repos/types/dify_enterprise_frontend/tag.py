@@ -1,19 +1,15 @@
 """Tag operations for Dify Enterprise Frontend repo."""
 
-from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Protocol, cast
 
 
-class TagOperationsMixin(ABC):
+class TagRepoProtocol(Protocol):
+    github: Any
+    github_path: str
+
+
+class TagOperationsMixin:
     """Mixin providing tag operations for DifyEnterpriseFrontendRepo."""
-
-    @property
-    @abstractmethod
-    def github(self) -> Any: ...
-
-    @property
-    @abstractmethod
-    def github_path(self) -> str: ...
 
     async def create_tag(
         self,
@@ -27,7 +23,8 @@ class TagOperationsMixin(ABC):
             tag: Tag name to create (e.g., "v1.0.0").
         """
         try:
-            repo = self.github.get_repo(self.github_path)
+            repo_ref = cast(TagRepoProtocol, self)
+            repo = repo_ref.github.get_repo(repo_ref.github_path)
 
             try:
                 branch_ref = repo.get_branch(branch)
@@ -60,7 +57,7 @@ class TagOperationsMixin(ABC):
                 "tag": tag,
                 "branch": branch,
                 "sha": sha,
-                "url": f"https://github.com/{self.github_path}/releases/tag/{tag}",
+                "url": f"https://github.com/{repo_ref.github_path}/releases/tag/{tag}",
             }
         except Exception as e:
             return {
