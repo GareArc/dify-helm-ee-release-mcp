@@ -47,47 +47,19 @@ def create_server() -> FastMCP:
     mcp = FastMCP(
         "Helm Release MCP",
         instructions="""
-        This MCP server helps manage Helm chart releases across GitHub repositories.
+        This MCP server manages Helm release workflows for configured repositories.
 
-        ## Available Tools
+        Discovery:
+        - Use MCP `list_tools` for the authoritative tool list and schemas.
+        - Use `list_repos` to see configured repositories.
+        - Use `get_repo_operations` to learn per-repo actions.
 
-        ### Discovery
-        - `list_repos`: List all managed repositories
-        - `get_repo_status`: Get status of a specific repository
-        - `get_repo_operations`: Get available operations for a repository
+        Common flow:
+        1. Discover repositories and operations.
+        2. Trigger repo-specific workflows.
+        3. Track workflow runs with `check_workflow` or `wait_for_workflow`.
 
-        ### Status Queries
-        - `check_workflow`: Check status of a GitHub Actions workflow run
-        - `check_pr`: Check status of a pull request
-        - `wait_for_workflow`: Wait for a workflow to complete
-        - `list_workflow_runs`: List recent workflow runs
-        - `list_open_prs`: List open pull requests
-
-        ### Repository Operations
-        Tools are named `{repo_name}__{operation}` where repo_name is from your config.
-
-        For dify-helm repos:
-        - `{repo}__list_charts`: List all charts
-        - `{repo}__get_chart_info`: Get chart details
-        - `{repo}__prepare_release`: Create release PR
-        - `{repo}__publish_release`: Merge PR and create release
-        - `{repo}__lint_chart`: Validate a chart
-
-        For dify-enterprise repos:
-        - `{repo}__get_version`: Get current version
-        - `{repo}__bump_version`: Bump version
-        - `{repo}__prepare_release`: Create release PR
-        - `{repo}__trigger_build`: Trigger CI workflow
-        - `{repo}__publish_release`: Merge PR and create release
-        - `{repo}__update_helm_chart`: Update associated Helm chart
-
-        ## Typical Workflow
-
-        1. `list_repos()` - See available repositories
-        2. `{repo}__prepare_release(...)` - Create a release PR
-        3. `check_pr(repo, pr_number)` - Monitor PR status
-        4. After approval: `{repo}__publish_release(...)` - Merge and release
-        5. `check_workflow(repo, run_id)` - Monitor publish workflow
+        Background: see docs/configuration.md and docs/repos/ for repo types and workflow mappings.
         """,
     )
 
