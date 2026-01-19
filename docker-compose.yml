@@ -1,10 +1,8 @@
-version: "3.9"
-
 services:
   helm-release-mcp:
     image: garethcxydify/helm-release-mcp:latest
     ports:
-      - "8000:8000"
+      - "18000:8000"
     environment:
       HELM_MCP_TRANSPORT: streamable-http
       HELM_MCP_HOST: 0.0.0.0
