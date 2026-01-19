@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from github import Auth, Github, GithubException
@@ -324,8 +324,8 @@ class GitHubService:
             mergeable=pr.mergeable,
             merged=pr.merged,
             draft=pr.draft,
-            created_at=pr.created_at,
-            updated_at=pr.updated_at,
+            created_at=pr.created_at or datetime.now(UTC),
+            updated_at=pr.updated_at or pr.created_at or datetime.now(UTC),
         )
 
     # =========================================================================
@@ -339,7 +339,8 @@ class GitHubService:
         *,
         ref: str = "main",
         inputs: dict[str, str] | None = None,
-    ) -> int | None:
+        wait_for_run_seconds: int = 60,
+    ) -> int:
         """Trigger a workflow dispatch event.
 
         Args:
@@ -347,6 +348,7 @@ class GitHubService:
             workflow_file: Workflow filename (e.g., "release.yaml").
             ref: Git ref to run workflow on.
             inputs: Workflow inputs.
+            wait_for_run_seconds: Seconds to wait for the run to appear (default: 30).
 
         Returns:
             Workflow run ID if available, None otherwise.
@@ -367,12 +369,14 @@ class GitHubService:
             # Try to get the run ID (may take a moment to appear)
             import time
 
-            time.sleep(2)  # Brief wait for GitHub to process
+            deadline = time.monotonic() + wait_for_run_seconds
+            while time.monotonic() < deadline:
+                runs = list(workflow.get_runs(branch=ref, event="workflow_dispatch"))
+                if runs:
+                    return runs[0].id
+                time.sleep(2)
 
-            runs = list(workflow.get_runs(branch=ref, event="workflow_dispatch"))
-            if runs:
-                return runs[0].id
-            return None
+            raise GitHubError(f"Workflow run ID not available yet for {workflow_file} on {ref}")
 
         except GithubException as e:
             raise GitHubError(f"Failed to trigger workflow {workflow_file}: {e}") from e
@@ -447,7 +451,7 @@ class GitHubService:
             head_branch=run.head_branch or "",
             event=run.event,
             created_at=run.created_at,
-            updated_at=run.updated_at,
+            updated_at=run.updated_at or run.created_at or datetime.now(UTC),
             run_started_at=run.run_started_at,
         )
 
