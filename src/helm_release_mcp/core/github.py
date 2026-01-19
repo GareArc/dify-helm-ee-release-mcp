@@ -36,6 +36,7 @@ class PullRequestInfo:
     draft: bool
     created_at: datetime
     updated_at: datetime
+    merge_commit_sha: str | None = None
     checks_passed: bool | None = None
     review_state: str | None = None
 
@@ -86,6 +87,17 @@ class BranchInfo:
     commit_committer: str
     commit_date: datetime
     commit_url: str
+
+
+@dataclass
+class CommitComparison:
+    """Comparison result between two commits."""
+
+    status: str  # identical, ahead, behind, diverged
+    ahead_by: int
+    behind_by: int
+    merge_base_sha: str
+    html_url: str
 
 
 class GitHubService:
@@ -326,6 +338,7 @@ class GitHubService:
             draft=pr.draft,
             created_at=pr.created_at or datetime.now(UTC),
             updated_at=pr.updated_at or pr.created_at or datetime.now(UTC),
+            merge_commit_sha=pr.merge_commit_sha if pr.merged else None,
         )
 
     # =========================================================================
@@ -626,6 +639,43 @@ class GitHubService:
             if e.status == 404:
                 return None
             raise GitHubError(f"Failed to get branch {branch_name}: {e}") from e
+
+    # =========================================================================
+    # Commit Comparison Operations
+    # =========================================================================
+
+    def compare_commits(
+        self,
+        repo_path: str,
+        base: str,
+        head: str,
+    ) -> CommitComparison:
+        """Compare two commits or branches.
+
+        Args:
+            repo_path: Repository path.
+            base: Base commit SHA, branch, or tag.
+            head: Head commit SHA, branch, or tag.
+
+        Returns:
+            Comparison result with status and commit counts.
+
+        Raises:
+            GitHubError: If comparison fails.
+        """
+        try:
+            repo = self.get_repo(repo_path)
+            comparison = repo.compare(base, head)
+
+            return CommitComparison(
+                status=comparison.status,
+                ahead_by=comparison.ahead_by,
+                behind_by=comparison.behind_by,
+                merge_base_sha=comparison.merge_base_commit.sha,
+                html_url=comparison.html_url,
+            )
+        except GithubException as e:
+            raise GitHubError(f"Failed to compare {base}...{head}: {e}") from e
 
     def close(self) -> None:
         """Close the GitHub client."""

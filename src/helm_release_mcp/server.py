@@ -4,8 +4,8 @@ import hmac
 import logging
 from pathlib import Path
 
-from fastmcp.server.auth import AccessToken, TokenVerifier
 from fastmcp import FastMCP
+from fastmcp.server.auth import AccessToken, TokenVerifier
 
 from helm_release_mcp.repos.registry import RepoRegistry
 from helm_release_mcp.settings import get_settings

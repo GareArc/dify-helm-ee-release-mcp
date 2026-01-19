@@ -158,11 +158,29 @@ For Claude Desktop, add to your MCP settings:
 
 ### Global Tools
 
+#### Discovery Tools
+
 - `list_repos()` - List all managed repositories
 - `get_repo_status(repo)` - Get high-level status of a repository
 - `get_repo_operations(repo)` - Get available operations for a repository
+
+#### Branch & Commit Tools
+
 - `create_branch(repo, branch, base_ref)` - Create a remote branch from a git ref (tag, branch, or SHA)
 - `get_release_branch_info(repo, branch)` - Get branch info with commit details and workflow runs
+- `check_commit_in_branch(repo, commit, branch)` - Check if a commit SHA is in a branch
+
+#### PR Tools
+
+- `check_pr(repo, pr_number?, pr_url?)` - Get PR status by number or URL (state, checks, reviews)
+- `check_pr_in_branch(repo, branch, pr_number?, pr_url?)` - Check if a PR is in a branch
+- `list_open_prs(repo, base?)` - List open pull requests
+
+#### Workflow Tools
+
+- `check_workflow(repo, run_id)` - Check workflow run status
+- `wait_for_workflow(repo, run_id, timeout?, poll_interval?)` - Wait for workflow completion
+- `list_workflow_runs(repo, workflow_file?, branch?, status?, limit?)` - List recent workflow runs
 
 
 ### Dify Enterprise Operations

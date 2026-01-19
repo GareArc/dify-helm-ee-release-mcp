@@ -1,8 +1,10 @@
-from pydantic import BaseModel
 from typing import Annotated
+
 from fastapi import Depends
-from helm_release_mcp.api import verify_token
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
+
+from helm_release_mcp.api import verify_token
 
 router = APIRouter()
 

@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from helm_release_mcp.repos.registry import RepoRegistry
+from helm_release_mcp.tools.pr_commit_handler import PrCommitHandler
 
 logger = logging.getLogger(__name__)
 
@@ -149,12 +150,17 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
-    async def check_pr(repo: str, pr_number: int) -> dict[str, Any]:
+    async def check_pr(
+        repo: str,
+        pr_number: int | None = None,
+        pr_url: str | None = None,
+    ) -> dict[str, Any]:
         """Check the status of a pull request.
 
         Args:
             repo: Repository name.
             pr_number: Pull request number.
+            pr_url: Pull request URL (alternative to pr_number).
 
         Returns PR status including state, checks, and review status.
         """
@@ -165,20 +171,28 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
                 "error": f"Repository not found: {repo}",
             }
 
+        handler = PrCommitHandler()
+        resolution = handler.resolve_pr_identifier(
+            repo_obj.github_path,
+            pr_number=pr_number,
+            pr_url=pr_url,
+        )
+
+        if not resolution["success"]:
+            return resolution
+
+        resolved_pr_number = resolution["pr_number"]
+
         try:
             github_path = repo_obj.github_path
             github = registry.services.github
 
-            # Get PR info
-            pr_info = github.get_pr(github_path, pr_number)
+            pr_info = github.get_pr(github_path, resolved_pr_number)
 
-            # Get checks status
-            checks = github.get_pr_checks_status(github_path, pr_number)
+            checks = github.get_pr_checks_status(github_path, resolved_pr_number)
 
-            # Get reviews
-            reviews = github.get_pr_reviews(github_path, pr_number)
+            reviews = github.get_pr_reviews(github_path, resolved_pr_number)
 
-            # Determine overall review state
             review_state = "pending"
             for review in reversed(reviews):
                 if review["state"] in ("APPROVED", "CHANGES_REQUESTED"):
@@ -193,8 +207,10 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
                 "draft": pr_info.draft,
                 "mergeable": pr_info.mergeable,
                 "merged": pr_info.merged,
+                "merge_commit_sha": pr_info.merge_commit_sha,
                 "html_url": pr_info.html_url,
                 "head_ref": pr_info.head_ref,
+                "head_sha": pr_info.head_sha,
                 "base_ref": pr_info.base_ref,
                 "checks_state": checks["state"],
                 "checks_passed": checks["state"] == "success",
@@ -204,7 +220,163 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
                 "updated_at": pr_info.updated_at.isoformat(),
             }
         except Exception as e:
-            logger.exception(f"Error checking PR #{pr_number}")
+            logger.exception(f"Error checking PR #{resolved_pr_number}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    @mcp.tool()
+    async def check_commit_in_branch(
+        repo: str,
+        commit: str,
+        branch: str,
+    ) -> dict[str, Any]:
+        """Check if a commit is in a branch.
+
+        Args:
+            repo: Repository name.
+            commit: Commit SHA to check.
+            branch: Branch name to check against.
+
+        Returns whether the commit is in the branch with comparison details.
+        """
+        repo_obj = registry.get_repo(repo)
+        if not repo_obj:
+            return {
+                "success": False,
+                "error": f"Repository not found: {repo}",
+            }
+
+        try:
+            github = registry.services.github
+            github_path = repo_obj.github_path
+
+            comparison = github.compare_commits(github_path, commit, branch)
+
+            handler = PrCommitHandler()
+            contains = handler.check_commit_in_branch(
+                {
+                    "status": comparison.status,
+                    "ahead_by": comparison.ahead_by,
+                    "behind_by": comparison.behind_by,
+                    "merge_base_sha": comparison.merge_base_sha,
+                },
+                commit,
+            )
+
+            return {
+                "success": True,
+                "contains": contains,
+                "commit": commit,
+                "branch": branch,
+                "comparison_status": comparison.status,
+                "ahead_by": comparison.ahead_by,
+                "behind_by": comparison.behind_by,
+                "merge_base_sha": comparison.merge_base_sha,
+                "comparison_url": comparison.html_url,
+            }
+        except Exception as e:
+            logger.exception(f"Error checking commit {commit} in branch {branch}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
+    @mcp.tool()
+    async def check_pr_in_branch(
+        repo: str,
+        branch: str,
+        pr_number: int | None = None,
+        pr_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Check if a pull request is in a branch.
+
+        Args:
+            repo: Repository name.
+            branch: Branch name to check against.
+            pr_number: Pull request number.
+            pr_url: Pull request URL (alternative to pr_number).
+
+        Returns whether the PR is in the branch with PR and comparison details.
+        """
+        repo_obj = registry.get_repo(repo)
+        if not repo_obj:
+            return {
+                "success": False,
+                "error": f"Repository not found: {repo}",
+            }
+
+        handler = PrCommitHandler()
+        resolution = handler.resolve_pr_identifier(
+            repo_obj.github_path,
+            pr_number=pr_number,
+            pr_url=pr_url,
+        )
+
+        if not resolution["success"]:
+            return resolution
+
+        resolved_pr_number = resolution["pr_number"]
+
+        try:
+            github = registry.services.github
+            github_path = repo_obj.github_path
+
+            pr_info = github.get_pr(github_path, resolved_pr_number)
+
+            if pr_info.merged and pr_info.base_ref == branch:
+                return {
+                    "success": True,
+                    "contains": True,
+                    "reason": "PR merged into target branch",
+                    "pr_number": pr_info.number,
+                    "pr_title": pr_info.title,
+                    "pr_state": pr_info.state,
+                    "pr_merged": pr_info.merged,
+                    "pr_base_ref": pr_info.base_ref,
+                    "pr_head_ref": pr_info.head_ref,
+                    "pr_merge_commit_sha": pr_info.merge_commit_sha,
+                    "branch": branch,
+                }
+
+            commit_to_check = (
+                pr_info.merge_commit_sha if pr_info.merge_commit_sha else pr_info.head_sha
+            )
+
+            comparison = github.compare_commits(github_path, commit_to_check, branch)
+
+            contains = handler.check_commit_in_branch(
+                {
+                    "status": comparison.status,
+                    "ahead_by": comparison.ahead_by,
+                    "behind_by": comparison.behind_by,
+                    "merge_base_sha": comparison.merge_base_sha,
+                },
+                commit_to_check,
+            )
+
+            return {
+                "success": True,
+                "contains": contains,
+                "pr_number": pr_info.number,
+                "pr_title": pr_info.title,
+                "pr_state": pr_info.state,
+                "pr_merged": pr_info.merged,
+                "pr_base_ref": pr_info.base_ref,
+                "pr_head_ref": pr_info.head_ref,
+                "pr_head_sha": pr_info.head_sha,
+                "pr_merge_commit_sha": pr_info.merge_commit_sha,
+                "branch": branch,
+                "checked_commit": commit_to_check,
+                "comparison_status": comparison.status,
+                "ahead_by": comparison.ahead_by,
+                "behind_by": comparison.behind_by,
+                "merge_base_sha": comparison.merge_base_sha,
+                "comparison_url": comparison.html_url,
+            }
+        except Exception as e:
+            logger.exception(f"Error checking PR #{resolved_pr_number} in branch {branch}")
             return {
                 "success": False,
                 "error": str(e),

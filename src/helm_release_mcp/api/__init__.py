@@ -1,11 +1,10 @@
-from pydantic import BaseModel
-from fastapi import APIRouter
-from fastapi import Request
-from fastapi import HTTPException
 from typing import Annotated
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel
+
 from helm_release_mcp.settings import get_settings
-from fastapi import Depends
 
 router = APIRouter()
 

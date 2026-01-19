@@ -1,13 +1,12 @@
 """Helm Release MCP Server - Automate Helm chart releases across GitHub repositories."""
 
-from helm_release_mcp.server import create_server
-from helm_release_mcp.settings import get_settings
-from fastapi import FastAPI
 import uvicorn
-from contextlib import asynccontextmanager
-from fastapi import Response
+from fastapi import FastAPI
+
 from helm_release_mcp.api import router
 from helm_release_mcp.api.tool_calls import router as tool_calls_router
+from helm_release_mcp.server import create_server
+from helm_release_mcp.settings import get_settings
 
 
 def main() -> None:
