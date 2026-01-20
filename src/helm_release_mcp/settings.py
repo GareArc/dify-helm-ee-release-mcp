@@ -84,7 +84,7 @@ class Settings(BaseSettings):
         default=6379,
         description="Redis port",
     )
-    
+
     redis_db: int = Field(
         default=0,
         description="Redis database",
@@ -104,11 +104,12 @@ class Settings(BaseSettings):
         default=False,
         description="Enable human in the loop",
     )
-    
+
     human_in_the_loop_timeout_seconds: int = Field(
         default=120,
         description="Timeout for human in the loop in seconds",
     )
+
 
 # Global settings instance - lazy loaded
 _settings: Settings | None = None

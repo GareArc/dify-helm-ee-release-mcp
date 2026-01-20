@@ -2,6 +2,7 @@ from redis import Redis
 from pydantic import BaseModel
 from helm_release_mcp.settings import get_settings
 
+
 class TypedRedisClient:
     def __init__(self) -> None:
         settings = get_settings()

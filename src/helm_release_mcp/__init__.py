@@ -39,6 +39,6 @@ def main() -> None:
             app.include_router(router)
             app.include_router(tool_calls_router)
             app.mount("/static", StaticFiles(directory="static"), name="static")
-        
+
         app.mount("/", mcp_app)
         uvicorn.run(app, host=settings.host, port=settings.port)

@@ -28,6 +28,7 @@ async def verify_token(bearer: Annotated[HTTPAuthorizationCredentials, Depends(s
 async def api_health_check() -> HealthCheckResponse:
     return HealthCheckResponse(status="ok")
 
+
 @router.get("/")
 async def index():
     return RedirectResponse("/static/index.html")

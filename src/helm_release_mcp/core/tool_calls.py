@@ -31,7 +31,10 @@ class ToolCallService:
         return self.redis_client.hget(ToolCall, REDIS_KEY_TOOL_CALLS, tool_call_id)
 
     def list_tool_calls(self) -> list[ToolCall]:
-        return [ToolCall.model_validate_json(value) for value in self.redis_client.hgetall(REDIS_KEY_TOOL_CALLS)]
+        return [
+            ToolCall.model_validate_json(value)
+            for value in self.redis_client.hgetall(REDIS_KEY_TOOL_CALLS)
+        ]
 
     def approve_tool_call(self, tool_call_id: str) -> None:
         tool_call = self.get_tool_call(tool_call_id)
@@ -72,11 +75,10 @@ class ToolCallTimeoutError(ToolCallApprovalError):
     pass
 
 
-
 tool_call_service = ToolCallService()
 
-def aapprove_required(
-) -> Callable:
+
+def aapprove_required() -> Callable:
     """Decorator that requires approval before executing an MCP tool.
 
     When a decorated tool is invoked:
@@ -96,6 +98,7 @@ def aapprove_required(
         ToolCallRejectedError: If the tool call is rejected.
         ToolCallTimeoutError: If approval times out.
     """
+
     def decorator(func: Callable) -> Callable:
         settings = get_settings()
         timeout_seconds = settings.human_in_the_loop_timeout_seconds
