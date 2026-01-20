@@ -9,6 +9,7 @@ from fastmcp import FastMCP
 
 from helm_release_mcp.repos.base import BaseRepo
 from helm_release_mcp.repos.registry import RepoRegistry
+from helm_release_mcp.core.tool_calls import aapprove_required
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ def _create_tool(
     tool_wrapper.__signature__ = inspect.Signature(parameters=parameters)  # type: ignore[attr-defined]
     tool_wrapper.__annotations__ = annotations.copy()
     tool_wrapper.__annotations__["return"] = dict[str, Any]
-
+    tool_wrapper = aapprove_required()(tool_wrapper)
     mcp.tool(
         name=tool_name,
         description=tool_wrapper.__doc__,

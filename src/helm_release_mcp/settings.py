@@ -75,6 +75,40 @@ class Settings(BaseSettings):
         description="Default workflow wait timeout in seconds",
     )
 
+    redis_host: str = Field(
+        default="localhost",
+        description="Redis host",
+    )
+
+    redis_port: int = Field(
+        default=6379,
+        description="Redis port",
+    )
+    
+    redis_db: int = Field(
+        default=0,
+        description="Redis database",
+    )
+
+    redis_user: str | None = Field(
+        default=None,
+        description="Redis user",
+    )
+
+    redis_password: str | None = Field(
+        default=None,
+        description="Redis password",
+    )
+
+    human_in_the_loop_enabled: bool = Field(
+        default=False,
+        description="Enable human in the loop",
+    )
+    
+    human_in_the_loop_timeout_seconds: int = Field(
+        default=120,
+        description="Timeout for human in the loop in seconds",
+    )
 
 # Global settings instance - lazy loaded
 _settings: Settings | None = None
