@@ -76,8 +76,6 @@ class ToolCallTimeoutError(ToolCallApprovalError):
 tool_call_service = ToolCallService()
 
 def aapprove_required(
-    timeout_seconds: int = 120,
-    poll_interval: float = 0.5,
 ) -> Callable:
     """Decorator that requires approval before executing an MCP tool.
 
@@ -100,6 +98,9 @@ def aapprove_required(
     """
     def decorator(func: Callable) -> Callable:
         settings = get_settings()
+        timeout_seconds = settings.human_in_the_loop_timeout_seconds
+        poll_interval = 1
+
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             if not settings.human_in_the_loop_enabled:
