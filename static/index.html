@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human in the Loop - Tool Calls</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Human in the Loop - Tool Calls</h1>
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+                <select id="status-filter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <button id="logout-btn" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        <div id="success-message" class="success-message" style="display: none;"></div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading tool calls...</p>
+        </div>
+
+        <div id="tool-calls-container" class="tool-calls-container">
+            <!-- Tool calls will be inserted here -->
+        </div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <p>No tool calls found.</p>
+        </div>
+    </div>
+
+    <script src="/static/auth.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

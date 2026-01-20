@@ -8,6 +8,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from helm_release_mcp.repos.registry import RepoRegistry
+from helm_release_mcp.core.tool_calls import aapprove_required
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
     # =========================================================================
 
     @mcp.tool()
+    @aapprove_required()
     async def list_repos() -> dict[str, Any]:
         """List all managed repositories with their types and available operations.
 
@@ -53,6 +55,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
         }
 
     @mcp.tool()
+    @aapprove_required()
     async def get_repo_status(repo: str) -> dict[str, Any]:
         """Get high-level status of a specific repository.
 
@@ -82,6 +85,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def get_repo_operations(repo: str) -> dict[str, Any]:
         """Get available operations for a repository.
 
@@ -111,6 +115,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
     # =========================================================================
 
     @mcp.tool()
+    @aapprove_required()
     async def check_workflow(repo: str, run_id: int) -> dict[str, Any]:
         """Check the status of a GitHub Actions workflow run.
 
@@ -149,6 +154,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def check_pr(repo: str, pr_number: int) -> dict[str, Any]:
         """Check the status of a pull request.
 
@@ -211,6 +217,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def wait_for_workflow(
         repo: str,
         run_id: int,
@@ -274,6 +281,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
         }
 
     @mcp.tool()
+    @aapprove_required()
     async def list_workflow_runs(
         repo: str,
         workflow_file: str | None = None,
@@ -331,6 +339,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def list_open_prs(repo: str, base: str | None = None) -> dict[str, Any]:
         """List open pull requests for a repository.
 
@@ -373,6 +382,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def create_branch(repo: str, branch: str, base_ref: str | None = None) -> dict[str, Any]:
         """Create a new branch in a repository (remote GitHub ref).
 
@@ -449,6 +459,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def get_release_branch_info(repo: str, branch: str) -> dict[str, Any]:
         """Get release branch info including latest commit and workflow runs.
 

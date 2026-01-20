@@ -1,3 +1,4 @@
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 from fastapi import APIRouter
 from fastapi import Request
@@ -27,3 +28,7 @@ async def verify_token(bearer: Annotated[HTTPAuthorizationCredentials, Depends(s
 @router.get("/api/health")
 async def api_health_check() -> HealthCheckResponse:
     return HealthCheckResponse(status="ok")
+
+@router.get("/")
+async def index():
+    return RedirectResponse("/static/index.html")
