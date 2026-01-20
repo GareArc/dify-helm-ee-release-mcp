@@ -1,9 +1,38 @@
 // Configuration
 const API_BASE = '/api';
 
+// Client-side cache to avoid unnecessary re-renders
+let cachedToolCalls = [];
+let lastToolCallsSignature = null;
+
 // Check authentication on page load
 if (!isAuthenticated()) {
     redirectToLogin();
+}
+
+function stableStringify(value) {
+    // Deterministic JSON stringification (sort object keys recursively)
+    if (value === null || value === undefined) return String(value);
+    if (typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+    const keys = Object.keys(value).sort();
+    const props = keys.map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`);
+    return `{${props.join(',')}}`;
+}
+
+function toolCallsSignature(toolCalls) {
+    // Sort to make signature order-insensitive
+    const normalized = [...toolCalls].sort((a, b) =>
+        String(a.tool_call_id).localeCompare(String(b.tool_call_id))
+    );
+    return stableStringify(
+        normalized.map(tc => ({
+            tool_call_id: tc.tool_call_id,
+            tool_name: tc.tool_name,
+            status: tc.status,
+            args: tc.args,
+        }))
+    );
 }
 
 // API functions
@@ -201,6 +230,16 @@ async function loadToolCalls(showLoading = true) {
 
     const statusFilter = $('#status-filter').val();
     const toolCalls = await fetchToolCalls();
+    const signature = toolCallsSignature(toolCalls);
+
+    // If data didn't change, do not refresh/re-render the UI
+    if (signature === lastToolCallsSignature) {
+        $loading.hide();
+        return;
+    }
+
+    cachedToolCalls = toolCalls;
+    lastToolCallsSignature = signature;
     renderToolCalls(toolCalls, statusFilter);
 }
 
@@ -248,23 +287,8 @@ $(document).ready(function() {
 
     // Status filter
     $('#status-filter').on('change', function() {
-        const toolCalls = [];
-        $('.tool-call-card').each(function() {
-            const $card = $(this);
-            const id = $card.attr('id').replace('tool-call-', '');
-            const name = $card.find('.tool-name').text();
-            const status = $card.find('.status-badge').text().trim();
-            const argsText = $card.find('.tool-args').text();
-            let args;
-            try {
-                args = JSON.parse(argsText);
-            } catch {
-                args = {};
-            }
-            toolCalls.push({ tool_call_id: id, tool_name: name, args, status });
-        });
         const statusFilter = $('#status-filter').val();
-        renderToolCalls(toolCalls, statusFilter);
+        renderToolCalls(cachedToolCalls, statusFilter);
     });
 
     // Handle tool call actions using event delegation
