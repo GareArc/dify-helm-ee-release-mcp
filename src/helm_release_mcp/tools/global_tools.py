@@ -9,6 +9,7 @@ from fastmcp import FastMCP
 
 from helm_release_mcp.repos.registry import RepoRegistry
 from helm_release_mcp.tools.pr_commit_handler import PrCommitHandler
+from helm_release_mcp.core.tool_calls import aapprove_required
 
 logger = logging.getLogger(__name__)
 
@@ -581,6 +582,7 @@ def register_global_tools(mcp: FastMCP, registry: RepoRegistry) -> None:
             }
 
     @mcp.tool()
+    @aapprove_required()
     async def create_branch(repo: str, branch: str, base_ref: str | None = None) -> dict[str, Any]:
         """Create a new branch in a repository (remote GitHub ref).
 
