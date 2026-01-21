@@ -44,6 +44,7 @@ COPY --from=builder /app/.venv /app/.venv
 
 COPY src/ ./src/
 COPY config/ ./config/
+COPY static/ ./static/
 
 # Set environment
 ENV PATH="/app/.venv/bin:$PATH"
