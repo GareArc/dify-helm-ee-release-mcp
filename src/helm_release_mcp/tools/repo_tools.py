@@ -120,7 +120,11 @@ def _create_tool(
     tool_wrapper.__signature__ = inspect.Signature(parameters=parameters)  # type: ignore[attr-defined]
     tool_wrapper.__annotations__ = annotations.copy()
     tool_wrapper.__annotations__["return"] = dict[str, Any]
-    tool_wrapper = aapprove_required()(tool_wrapper)
+    dangerous_ops = (
+        'create', 'trigger', 'update', 'delete'
+    )
+    if any(op in tool_name for op in dangerous_ops):
+        tool_wrapper = aapprove_required()(tool_wrapper)
     mcp.tool(
         name=tool_name,
         description=tool_wrapper.__doc__,
