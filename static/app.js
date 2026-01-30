@@ -225,8 +225,8 @@ async function loadToolCalls(showLoading = true) {
     if (showLoading) {
         $loading.show();
         $container.empty();
+        $emptyState.hide();
     }
-    $emptyState.hide();
 
     const statusFilter = $('#status-filter').val();
     const toolCalls = await fetchToolCalls();
