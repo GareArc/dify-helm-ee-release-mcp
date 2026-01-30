@@ -75,6 +75,23 @@ class Settings(BaseSettings):
         description="Default workflow wait timeout in seconds",
     )
 
+    human_in_the_loop_enabled: bool = Field(
+        default=False,
+        description="Enable human in the loop",
+    )
+
+    human_in_the_loop_timeout_seconds: int = Field(
+        default=120,
+        description="Timeout for human in the loop in seconds",
+    )
+
+    tool_call_store_backend: Literal["memory"] = Field(
+        default="memory",
+        description="Backend for tool call store. Memory-based store is suitable for "
+        "single-process deployments only. For multi-process deployments, implement a "
+        "custom shared storage backend (e.g., Redis) by subclassing ToolCallStore.",
+    )
+
 
 # Global settings instance - lazy loaded
 _settings: Settings | None = None

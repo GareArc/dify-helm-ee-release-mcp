@@ -1,6 +1,9 @@
-# Helm Release MCP Server
+# Helm Release MCP Server (HITL Variant)
 
-MCP (Model Context Protocol) server for automating Dify EE Helm chart releases across GitHub repositories.
+> **Note**: This is the **Human-in-the-Loop (HITL) variant** of the Helm Release MCP Server.
+> For the standard version without approval workflows, see the `main` branch.
+
+MCP (Model Context Protocol) server for automating Dify EE Helm chart releases across GitHub repositories, with optional human approval for sensitive operations.
 
 ## Features
 
@@ -11,6 +14,7 @@ MCP (Model Context Protocol) server for automating Dify EE Helm chart releases a
 - **Tag-based builds**: Trigger builds by creating tags on release branches
 - **Per-repo tokens**: Use different GitHub tokens per repository
 - **Flexible configuration**: YAML-based repository configuration with environment variable support
+- **Human-in-the-Loop (HITL)**: Optional approval workflow for sensitive operations via web UI
 
 ## Quick Start
 
@@ -131,6 +135,60 @@ Authentication uses Bearer token in the `Authorization` header:
 curl -H "Authorization: Bearer your-secret-token" http://localhost:8000/mcp
 ```
 
+### Human-in-the-Loop (HITL) Configuration
+
+This variant includes an approval workflow that requires human confirmation before executing sensitive operations.
+
+#### Prerequisites
+
+- Redis server (for approval state management)
+- Web browser access to the approval UI
+
+#### Environment Variables
+
+```bash
+# Enable HITL (default: false)
+HELM_MCP_HUMAN_IN_THE_LOOP_ENABLED=true
+
+# Approval timeout in seconds (default: 120)
+HELM_MCP_HUMAN_IN_THE_LOOP_TIMEOUT_SECONDS=120
+
+# Redis connection
+HELM_MCP_REDIS_HOST=localhost
+HELM_MCP_REDIS_PORT=6379
+HELM_MCP_REDIS_PASSWORD=changeit
+HELM_MCP_REDIS_USER=
+```
+
+#### Running with Docker Compose
+
+The easiest way to run the HITL variant is with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+This starts both the MCP server and Redis.
+
+#### Approval UI
+
+When HITL is enabled, access the approval UI at:
+
+```
+http://localhost:8000/static/index.html
+```
+
+The UI shows pending tool calls that require approval. Approvers can:
+- View the tool name and arguments
+- Approve or reject the operation
+- See the approval history
+
+#### Protected Operations
+
+The following operations require human approval when HITL is enabled:
+- `create_branch` - Creating new branches
+- All repository-specific operations (triggers, tag creation, releases)
+
 ### MCP Client Configuration
 
 For Claude Desktop, add to your MCP settings:
@@ -247,12 +305,18 @@ For the Dify Enterprise Frontend repository. Supports:
 
 ## DockerHub Release
 
-Create a git tag like `v1.2.3` to trigger the DockerHub publish workflow. Configure these repository secrets:
+This HITL variant uses separate Docker tags from the main version.
+
+Create a git tag like `v1.2.3-hitl` to trigger the DockerHub publish workflow. Configure these repository secrets:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
-Images will publish to `DOCKERHUB_USERNAME/helm-release-mcp` with tags `vX.Y.Z` and `latest`.
+Images will publish to `DOCKERHUB_USERNAME/helm-release-mcp` with tags:
+- `X.Y.Z-hitl` (version-specific)
+- `latest-hitl` (latest HITL variant)
+
+**Standard version** (main branch): Use tags like `v1.2.3` for `latest` and `X.Y.Z` tags.
 
 ## Development
 
