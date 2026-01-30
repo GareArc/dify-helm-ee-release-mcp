@@ -1,17 +1,39 @@
-from typing import Literal, Optional
-from pydantic import BaseModel, Field, TypeAdapter
-from fastmcp.tools import FunctionTool
+"""Tool call storage and approval workflow for human-in-the-loop functionality.
+
+This module provides storage backends for managing tool call approvals.
+The default `MemoryBasedToolCallStore` is suitable for single-process deployments.
+
+## Multi-Process Limitations
+
+The `MemoryBasedToolCallStore` stores data in-memory within a single process.
+This has the following limitations:
+
+- **Not suitable for multi-process deployments**: Each process maintains its own
+  independent store. Tool calls created in one process will not be visible to
+  other processes.
+- **Not suitable for multi-worker deployments**: If using uvicorn/gunicorn with
+  multiple workers, each worker is a separate process with its own store.
+- **Data is lost on restart**: All pending tool calls are lost when the process
+  restarts.
+
+For multi-process deployments, consider implementing a shared storage backend
+(e.g., Redis, database) by subclassing `ToolCallStore`.
+
+## Coroutine Safety
+
+The `MemoryBasedToolCallStore` is safe for concurrent access from multiple
+coroutines within the same event loop. It uses `asyncio.Lock` to ensure
+thread-safe operations in an async context.
+"""
+
+from typing import Literal, Optional, Callable, Any
+from pydantic import BaseModel, Field
 from helm_release_mcp.settings import get_settings
 from functools import wraps
-from typing import Callable, Any
 from datetime import datetime, timedelta
 import uuid
 import asyncio
 from abc import ABC, abstractmethod
-from pathlib import Path
-import json
-import aiofiles
-import tempfile 
 
 
 class ToolCall(BaseModel):
@@ -23,19 +45,34 @@ class ToolCall(BaseModel):
 
 
 class ToolCallStore(ABC):
+    """Abstract base class for tool call storage backends.
+    
+    Implementations must be coroutine-safe for concurrent access within
+    the same event loop.
+    
+    Note: The default singleton instance is NOT safe for multi-process
+    deployments. See module docstring for details.
+    """
 
     _instance: Optional["ToolCallStore"] = None
 
     @classmethod
     def get_instance(cls) -> "ToolCallStore":
+        """Get or create the singleton store instance.
+        
+        Warning: This singleton is process-local. In multi-process deployments
+        (e.g., multiple uvicorn workers), each process will have its own
+        independent store instance.
+        """
         if cls._instance is not None:
             return cls._instance
-        settings = get_settings()
-        if settings.tool_call_store_backend == "file":
-            cls._instance = FileBasedToolCallStore()
-        else:
-            raise ValueError(f"Unsupported tool call store backend: {settings.tool_call_store_backend}")
+        cls._instance = MemoryBasedToolCallStore()
         return cls._instance
+    
+    @classmethod
+    def reset_instance(cls) -> None:
+        """Reset the singleton instance. Primarily for testing."""
+        cls._instance = None
         
     @abstractmethod
     async def add_tool_call(self, tool_call: ToolCall) -> None:
@@ -53,61 +90,55 @@ class ToolCallStore(ABC):
     async def delete_tool_call(self, tool_call_id: str) -> None:
         pass
 
-class FileBasedToolCallStore(ToolCallStore):
-    def __init__(self, file_path: Path = Path(tempfile.gettempdir()) / "helm_mcp_tool_calls.json") -> None:
-        self.file_path = file_path
-        if not self.file_path.exists():
-            self.file_path.touch()
-        self._cache: list[ToolCall] | None = None
+
+class MemoryBasedToolCallStore(ToolCallStore):
+    """In-memory tool call store with coroutine-safe operations.
+    
+    This store maintains tool calls in memory using a dictionary for O(1) lookups.
+    All operations are protected by an asyncio.Lock for safe concurrent access
+    from multiple coroutines.
+    
+    Limitations:
+        - Data is not persisted across process restarts
+        - Not suitable for multi-process deployments (each process has its own store)
+        - Not suitable for multi-worker server configurations
+    
+    For production multi-process deployments, implement a shared storage backend
+    (e.g., Redis, PostgreSQL) by subclassing ToolCallStore.
+    """
+    
+    def __init__(self) -> None:
+        self._store: dict[str, ToolCall] = {}
         self._lock = asyncio.Lock()
 
-    async def _load(self) -> list[ToolCall]:
-        if self._cache:
-            return self._cache
-        async with aiofiles.open(self.file_path, "r") as f:
-            content = await f.read()
-            if not content or content == "null":
-                self._cache = []
-                return self._cache
-            self._cache = TypeAdapter(list[ToolCall]).validate_json(content)
-        return self._cache
-
-    async def _flush(self):
-        async with aiofiles.open(self.file_path, "wb") as f:
-            await f.write(TypeAdapter(list[ToolCall]).dump_json(self._cache))
-
     async def add_tool_call(self, tool_call: ToolCall) -> None:
+        """Add a new tool call to the store."""
         async with self._lock:
-            tool_calls = await self._load()
-            tool_calls.append(tool_call)
-            await self._flush()
+            self._store[tool_call.tool_call_id] = tool_call
 
     async def get_tool_call(self, tool_call_id: str) -> ToolCall | None:
+        """Retrieve a tool call by ID, or None if not found."""
         async with self._lock:
-            tool_calls = await self._load()
-            return next((tool_call for tool_call in tool_calls if tool_call.tool_call_id == tool_call_id), None)
+            return self._store.get(tool_call_id)
 
     async def list_tool_calls(self) -> list[ToolCall]:
+        """List all tool calls, sorted by expiration time."""
         async with self._lock:
             return sorted(
-                await self._load(),
+                self._store.values(),
                 key=lambda x: x.expires,
             )
 
     async def update_tool_call(self, tool_call: ToolCall) -> None:
-        tool_call_id = tool_call.tool_call_id
+        """Update an existing tool call."""
         async with self._lock:
-            tool_calls = await self._load()
-            tool_calls = [tool_call for tool_call in tool_calls if tool_call.tool_call_id != tool_call_id]
-            tool_calls.append(tool_call)
-            await self._flush()
+            self._store[tool_call.tool_call_id] = tool_call
 
     async def delete_tool_call(self, tool_call_id: str) -> None:
+        """Delete a tool call by ID. No-op if not found."""
         async with self._lock:
-            tool_calls = await self._load()
-            tool_calls = [tool_call for tool_call in tool_calls if tool_call.tool_call_id != tool_call_id]
-            self._cache = tool_calls
-            await self._flush()
+            self._store.pop(tool_call_id, None)
+
 
 class ToolCallService:
     def __init__(self) -> None:

@@ -85,9 +85,11 @@ class Settings(BaseSettings):
         description="Timeout for human in the loop in seconds",
     )
 
-    tool_call_store_backend: Literal["file"] = Field(
-        default="file",
-        description="Backend for tool call store",
+    tool_call_store_backend: Literal["memory"] = Field(
+        default="memory",
+        description="Backend for tool call store. Memory-based store is suitable for "
+        "single-process deployments only. For multi-process deployments, implement a "
+        "custom shared storage backend (e.g., Redis) by subclassing ToolCallStore.",
     )
 
 
